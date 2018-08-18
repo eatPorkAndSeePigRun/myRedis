@@ -22,7 +22,7 @@ void Connect(int fd, const struct sockaddr *sa, socklen_t salen);
 
 void Listen(int fd, int backlog);
 
-int Socket(int family, int type, int protocol);
+int Socket(int family, int type, int protocol=0);
 
 void Close(int fd);
 
