@@ -1,9 +1,14 @@
-#include <stdio.h>
+#ifndef CODE_H
+#define CODE_H
+
+#include <vector>
+#include <string>
+using namespace std;
 
 
-void encode(){
-}
+template<typename T>
+string encode(T command);
 
+vector<string> decode(string str);
 
-void decode(){
-}
+#endif  //CODE_H

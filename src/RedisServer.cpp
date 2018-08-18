@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include "RedisServer.h"
 #include "wrap.h"
+#include "code.h"
 
 
 using namespace std;
@@ -30,7 +31,7 @@ void RedisServer::open(){
         return;
     }
     this->is_close = false;
-    this->listenfd = Socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+    this->listenfd = Socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK);
     bzero(&(this->servaddr), sizeof(this->servaddr));
     this->servaddr.sin_family = AF_INET;
     this->servaddr.sin_addr.s_addr = htonl(this->ip);
@@ -52,7 +53,7 @@ void RedisServer::close(){
 void RedisServer::run(){
     int nready;
     while(true){
-        nready = Select(this->listenfd, &this->readfds, &this->writefds, NULL, NULL);
+        nready = Select(this->listenfd, this->readfds, this->writefds, NULL, NULL);
         for(auto fd: *this->readfds){
             if(fd == this->listenfd){
                 struct sockaddr_in cliaddr;
@@ -65,10 +66,10 @@ void RedisServer::run(){
                 string data;
                 Readn(fd, data, data.length());
                 if(data != NULL){
-                    string temp = this-execute(data);
+                    string temp = this->execute(data);
                     this->msg[fd].push_back(temp);
                     if(FD_ISSET(fd, &this->writefds)){
-                        FD_SET(fd, &writefds);
+                        FD_SET(fd, &this->writefds);
                     }
                 }
             }
@@ -84,5 +85,34 @@ void RedisServer::run(){
 }
 
 
-void RedisServer::execute(){
+string RedisServer::execute(vector<string> command){
+    int length = command.sizeof();
+    string method, key, value;
+    if(0 == length){
+        return "-Error message\r\n"
+    }else if(2 == length){
+        method = command.pop_back();
+        key = command.pop_back();
+    }else if(3 == length){
+        method = command.pop_back();
+        key = command.pop_back();
+        value = command.pop_back();
+    } 
+    if(method == "get"){
+        if(this->db.find(key) != this->db.end()){                 
+            return encode(this->db[key]);
+        }else{
+            return encode("None");
+        }
+    }else if(method == "del"){
+        if(this->db.find(key) != this->db.end()){
+            this.db.erase(this->db.find(key));                    
+            return encode(1);
+        }else{
+            return encode(0);
+        }
+    }else if(method == "set"){
+        this->db[key] = value;
+        return encode("OK");
+    }  
 }
