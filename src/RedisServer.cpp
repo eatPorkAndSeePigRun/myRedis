@@ -54,50 +54,57 @@ void RedisServer::run(){
     int nready;
     while(true){
         nready = Select(this->listenfd, this->readfds, this->writefds, NULL, NULL);
-        for(fd_set *fd: this->readfds){
-            if(*fd == this->listenfd){
+        for(auto fd: *this->readfds){
+            //TODO
+            if(fd == this->listenfd){
                 struct sockaddr_in cliaddr;
                 socklen_t cliaddr_len;
-                int connfd = Accept4(this->listenfd, (struct sockaddr *) cliaddr, &cliaddr_len, SOCK_NONBLOCK);
-                FD_SET(connfd, &this->readfds);
+                int connfd = Accept4(this->listenfd, (struct sockaddr *) &cliaddr, &cliaddr_len, SOCK_NONBLOCK);
+                FD_SET(connfd, this->readfds);
                 vector<string> temp;
-                this->msg[conn] = temp;    
+                this->msg[connfd] = temp;    
             }else{
                 string data;
-                Readn(*fd, data, data.length());
-                if(data != NULL){
+                Readn(fd, (void *)data.data(), data.length());
+                if(!data.empty()){
                     string temp = this->execute(data);
                     this->msg[fd].push_back(temp);
-                    if(FD_ISSET(fd, &this->writefds)){
-                        FD_SET(fd, &this->writefds);
+                    if(FD_ISSET(fd, this->writefds)){
+                        FD_SET(fd, this->writefds);
                     }
                 }
             }
         }
-        for(fd_set *fd: this->writefds){
-            if(this->msg.count() != 1){
+        for(auto fd: *this->writefds){
+            //TODO
+            if(this->msg.empty()){
                 break;
             }       
-            string msg = this->msg[*fd].pop_back();
-            Writen(*fd, msg, msg.length());
+            string msg = this->msg[fd].back();
+            this->msg[fd].pop_back();
+            Writen(fd, (const char *)msg.data(), msg.length());
         }
     }
 }
 
 
-string RedisServer::execute(vector<string> command){
-    int length = command.sizeof();
+string RedisServer::execute(string data){
+    vector<string> command;
+    command = decode(data);
+
+    int length = command.size();
     string method, key, value;
     if(0 == length){
-        return "-Error message\r\n"
+        return "-Error message\r\n";
     }else if(2 == length){
-        method = command.pop_back();
-        key = command.pop_back();
+        method = command[0];
+        key = command[1];
     }else if(3 == length){
-        method = command.pop_back();
-        key = command.pop_back();
-        value = command.pop_back();
+        method = command[0];
+        key = command[1];
+        value = command[2];
     } 
+
     if(method == "get"){
         if(this->db.find(key) != this->db.end()){                 
             return encode(this->db[key]);

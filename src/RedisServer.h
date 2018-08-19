@@ -21,7 +21,7 @@ private:
     map<string, string> db;
     fd_set *readfds;
     fd_set *writefds;
-    map<int, string> msg;
+    map<int, vector<string> > msg;
     bool is_open;
     bool is_close;
 public:
@@ -30,7 +30,7 @@ public:
     void open();
     void close();
     void run();
-    string execute(vector<string> command);
+    string execute(string data);
 };
 
 #endif //REDISSERVER_H
