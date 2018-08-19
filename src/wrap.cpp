@@ -57,7 +57,7 @@ void Listen(int fd, int backlog) {
 }
 
 
-int Socket(int family, int type, int protocol=0) {
+int Socket(int family, int type, int protocol) {
     int n;
     if ((n = socket(family, type, protocol)) < 0){
         log_then_exit("Socket error:");
