@@ -54,8 +54,8 @@ void RedisServer::run(){
     int nready;
     while(true){
         nready = Select(this->listenfd, this->readfds, this->writefds, NULL, NULL);
-        for(auto fd: *this->readfds){
-            if(fd == this->listenfd){
+        for(fd_set *fd: this->readfds){
+            if(*fd == this->listenfd){
                 struct sockaddr_in cliaddr;
                 socklen_t cliaddr_len;
                 int connfd = Accept4(this->listenfd, (struct sockaddr *) cliaddr, &cliaddr_len, SOCK_NONBLOCK);
@@ -64,7 +64,7 @@ void RedisServer::run(){
                 this->msg[conn] = temp;    
             }else{
                 string data;
-                Readn(fd, data, data.length());
+                Readn(*fd, data, data.length());
                 if(data != NULL){
                     string temp = this->execute(data);
                     this->msg[fd].push_back(temp);
@@ -74,12 +74,12 @@ void RedisServer::run(){
                 }
             }
         }
-        for(auto fd: *this->writefds){
+        for(fd_set *fd: this->writefds){
             if(this->msg.count() != 1){
                 break;
             }       
-            string msg = this->msg[fd].pop_back();
-            Writen(fd, msg, msg.length());
+            string msg = this->msg[*fd].pop_back();
+            Writen(*fd, msg, msg.length());
         }
     }
 }
@@ -106,7 +106,7 @@ string RedisServer::execute(vector<string> command){
         }
     }else if(method == "del"){
         if(this->db.find(key) != this->db.end()){
-            this.db.erase(this->db.find(key));                    
+            this->db.erase(this->db.find(key));                    
             return encode(1);
         }else{
             return encode(0);

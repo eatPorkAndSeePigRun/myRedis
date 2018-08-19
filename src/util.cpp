@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <sstream>
 #include "util.h"
 using namespace std;
 
@@ -8,6 +9,12 @@ string int2str(const int &int_temp){
     stringstream stream;  
     stream<<int_temp;  
     return stream.str(); 
+}  
+
+
+int str2int(const string &string_temp)  
+{  
+    return atoi(string_temp.c_str());                     
 }  
 
 

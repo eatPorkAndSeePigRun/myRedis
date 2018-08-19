@@ -1,12 +1,12 @@
 #ifndef WRAP_H
 #define WRAP_H
 
-
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <string>
+using namespace std;
 
 
 void log_then_exit(string msg);
