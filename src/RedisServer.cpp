@@ -1,20 +1,20 @@
-#include <iostream>
-#include <vector>
-#include <map>
-#include <string>
-#include <string.h>
-#include <arpa/inet.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <stdlib.h>
+#include <string.h>
+#include <iostream>
+#include <errno.h>
+#include <vector>
+#include <string>
+#include <map>
 #include "RedisServer.h"
 #include "wrap.h"
 #include "code.h"
 
-
 using namespace std;
 
 
-RedisServer::RedisServer(uint32_t ip, uint32_t port){
+RedisServer::RedisServer(uint32_t ip, uint32_t port) {
     this->ip = ip;
     this->port = port;
     this->is_open = true;
@@ -22,12 +22,13 @@ RedisServer::RedisServer(uint32_t ip, uint32_t port){
 }
 
 
-RedisServer::~RedisServer(){
+RedisServer::~RedisServer() {
+    this->close();
 }
 
 
-void RedisServer::open(){
-    if(!this->is_close){
+void RedisServer::open() {
+    if (!this->is_close) {
         return;
     }
     this->is_close = false;
@@ -41,85 +42,90 @@ void RedisServer::open(){
 }
 
 
-void RedisServer::close(){
-    if(!this->is_open){
+void RedisServer::close() {
+    if (!this->is_open) {
         return;
     }
     this->is_open = false;
     // TODO
+    for(auto fd: this->clientfds){
+        Close(fd);
+    }
+    Close(this->listenfd);
 }
 
 
-void RedisServer::run(){
-    int nready;
-    while(true){
-        nready = Select(this->listenfd, this->readfds, this->writefds, NULL, NULL);
-        for(auto fd: *this->readfds){
-            //TODO
-            if(fd == this->listenfd){
-                struct sockaddr_in cliaddr;
-                socklen_t cliaddr_len;
-                int connfd = Accept4(this->listenfd, (struct sockaddr *) &cliaddr, &cliaddr_len, SOCK_NONBLOCK);
-                FD_SET(connfd, this->readfds);
-                vector<string> temp;
-                this->msg[connfd] = temp;    
-            }else{
+void RedisServer::run() {
+    while (true) {
+        Select(this->listenfd, this->readfds, this->writefds, NULL, NULL);
+        if (FD_ISSET(this->listenfd, this->readfds)) {
+            struct sockaddr_in cliaddr;
+            socklen_t cliaddr_len;
+            int connfd = Accept4(this->listenfd, (struct sockaddr *) &cliaddr, &cliaddr_len, SOCK_NONBLOCK);
+            this->clientfds.push_back(connfd);
+            vector<string> temp;
+            this->msg[connfd] = temp;
+        }
+        for (auto fd: this->clientfds) {
+            if (FD_ISSET(fd, this->readfds)) {
                 string data;
-                Readn(fd, (void *)data.data(), data.length());
-                if(!data.empty()){
+                Readn(fd, (char *) data.data(), 1024);
+                if (!data.empty()) {
                     string temp = this->execute(data);
                     this->msg[fd].push_back(temp);
-                    if(FD_ISSET(fd, this->writefds)){
+                    if (FD_ISSET(fd, this->writefds)) {
                         FD_SET(fd, this->writefds);
                     }
                 }
             }
-        }
-        for(auto fd: *this->writefds){
-            //TODO
-            if(this->msg.empty()){
-                break;
-            }       
-            string msg = this->msg[fd].back();
-            this->msg[fd].pop_back();
-            Writen(fd, (const char *)msg.data(), msg.length());
+            if (FD_ISSET(fd, this->writefds)) {
+                if (this->msg.find(fd) != this->msg.end()) {
+                    break;
+                }
+                string msg = this->msg[fd].back();
+                Writen(fd, (const char *) msg.data(), 1024);
+                this->msg[fd].pop_back();
+                FD_CLR(fd, this->writefds);
+            }
         }
     }
 }
 
 
-string RedisServer::execute(string data){
+string RedisServer::execute(string data) {
     vector<string> command;
     command = decode(data);
 
     int length = command.size();
     string method, key, value;
-    if(0 == length){
+    if (0 == length) {
         return "-Error message\r\n";
-    }else if(2 == length){
+    } else if (2 == length) {
         method = command[0];
         key = command[1];
-    }else if(3 == length){
+    } else if (3 == length) {
         method = command[0];
         key = command[1];
         value = command[2];
-    } 
+    }
 
-    if(method == "get"){
-        if(this->db.find(key) != this->db.end()){                 
+    if (method == "get") {
+        if (this->db.find(key) != this->db.end()) {
             return encode(this->db[key]);
-        }else{
+        } else {
             return encode("None");
         }
-    }else if(method == "del"){
-        if(this->db.find(key) != this->db.end()){
-            this->db.erase(this->db.find(key));                    
+    } else if (method == "del") {
+        if (this->db.find(key) != this->db.end()) {
+            this->db.erase(this->db.find(key));
             return encode(1);
-        }else{
+        } else {
             return encode(0);
         }
-    }else if(method == "set"){
+    } else if (method == "set") {
         this->db[key] = value;
         return encode("OK");
-    }  
+    }
+
+    return "-Error message\r\n";
 }

@@ -1,18 +1,20 @@
 #ifndef REDISSERVER_H
 #define REDISSERVER_H
 
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdlib.h>
 #include <iostream>
+#include <string>
 #include <vector>
 #include <map>
-#include <string>
-#include <string.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <stdlib.h>
+
+
 using namespace std;
 
 
-class RedisServer{
+class RedisServer {
 private:
     uint32_t ip;
     uint32_t port;
@@ -24,14 +26,19 @@ private:
     map<int, vector<string> > msg;
     bool is_open;
     bool is_close;
+    vector<int> clientfds;
 public:
     RedisServer(uint32_t ip, uint32_t port);
+
     ~RedisServer();
+
     void open();
+
     void close();
+
     void run();
+
     string execute(string data);
 };
 
 #endif //REDISSERVER_H
-
