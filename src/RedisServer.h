@@ -16,8 +16,8 @@ using namespace std;
 
 class RedisServer {
 private:
-    uint32_t ip;
-    uint32_t port;
+    uint16_t ip;
+    uint16_t port;
     struct sockaddr_in servaddr;
     int listenfd;
     map<string, string> db;
