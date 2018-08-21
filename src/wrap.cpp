@@ -150,7 +150,7 @@ ssize_t Writen(int fd, const char *vptr, size_t nbytes) {
 int Select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout) {
     int n;
     if ((n = select(nfds, readfds, writefds, exceptfds, timeout)) < 0) {
-        log_then_exit("Select error:");
+        log_then_exit("Select error: ");
     }
     return n;
 }

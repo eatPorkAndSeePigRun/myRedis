@@ -10,6 +10,7 @@
 #include "RedisServer.h"
 #include "wrap.h"
 #include "code.h"
+#include "log.h"
 
 using namespace std;
 
@@ -19,11 +20,13 @@ RedisServer::RedisServer(uint32_t ip, uint32_t port) {
     this->port = port;
     this->is_open = true;
     this->is_close = true;
+    log("RedisServer RedisServer(), " + to_string(ip) + " " + to_string(port));
 }
 
 
 RedisServer::~RedisServer() {
     this->close();
+    log("RedisServer ~RedisServer()");
 }
 
 
@@ -31,6 +34,7 @@ void RedisServer::open() {
     if (!this->is_close) {
         return;
     }
+    log("RedisServer open()");
     this->is_close = false;
     this->listenfd = Socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK);
     bzero(&(this->servaddr), sizeof(this->servaddr));
@@ -46,8 +50,8 @@ void RedisServer::close() {
     if (!this->is_open) {
         return;
     }
+    log("RedisServer close()");
     this->is_open = false;
-    // TODO
     for(auto fd: this->clientfds){
         Close(fd);
     }
@@ -56,6 +60,7 @@ void RedisServer::close() {
 
 
 void RedisServer::run() {
+    log("RedisServer run()");
     while (true) {
         Select(this->listenfd, this->readfds, this->writefds, NULL, NULL);
         if (FD_ISSET(this->listenfd, this->readfds)) {
@@ -93,6 +98,7 @@ void RedisServer::run() {
 
 
 string RedisServer::execute(string data) {
+    log("RedisServer execute(), "+data);
     vector<string> command;
     command = decode(data);
 
