@@ -21,6 +21,7 @@ void log_then_exit(string msg) {
 
 
 int Accept(int fd, struct sockaddr *sa, socklen_t *salenptr) {
+    log("wrap Accept()");
     int n;
     if ((n = accept(fd, sa, salenptr)) < 0) {
         log_then_exit("Accept error:");
@@ -30,6 +31,7 @@ int Accept(int fd, struct sockaddr *sa, socklen_t *salenptr) {
 
 
 int Accept4(int fd, struct sockaddr *sa, socklen_t *salenptr, int flags) {
+    log("wrap Accept4()");
     int n;
     if ((n = accept4(fd, sa, salenptr, flags)) < 0) {
         log_then_exit("Accept4 error:");
@@ -38,6 +40,7 @@ int Accept4(int fd, struct sockaddr *sa, socklen_t *salenptr, int flags) {
 }
 
 void Bind(int fd, const struct sockaddr *sa, socklen_t salen) {
+    log("wrap Bind()");
     if (bind(fd, sa, salen) < 0) {
         log_then_exit("Bind error:");
     }
@@ -45,6 +48,7 @@ void Bind(int fd, const struct sockaddr *sa, socklen_t salen) {
 
 
 void Connect(int fd, const struct sockaddr *sa, socklen_t salen) {
+    log("wrap Connect()");
     if (connect(fd, sa, salen) < 0) {
         log_then_exit("Connect error:");
     }
@@ -52,6 +56,7 @@ void Connect(int fd, const struct sockaddr *sa, socklen_t salen) {
 
 
 void Listen(int fd, int backlog) {
+    log("wrap Listen()");
     if (listen(fd, backlog) < 0) {
         log_then_exit("Listen error:");
     }
@@ -59,6 +64,7 @@ void Listen(int fd, int backlog) {
 
 
 int Socket(int family, int type, int protocol) {
+    log("wrap Socket()");
     int n;
     if ((n = socket(family, type, protocol)) < 0) {
         log_then_exit("Socket error:");
@@ -68,6 +74,7 @@ int Socket(int family, int type, int protocol) {
 
 
 void Close(int fd) {
+    log("wrap Close()");
     if (close(fd) < 0) {
         log_then_exit("close error:");
     }
@@ -75,6 +82,7 @@ void Close(int fd) {
 
 
 ssize_t Read(int fd, void *ptr, size_t nbytes) {
+    log("wrap Read()");
     ssize_t n;
     while ((n = read(fd, ptr, nbytes)) < 0) {
         if (EINTR == errno || EAGAIN == errno) {
@@ -90,6 +98,7 @@ ssize_t Read(int fd, void *ptr, size_t nbytes) {
 
 
 ssize_t Write(int fd, const void *ptr, size_t nbytes) {
+    log("wrap Write()");
     ssize_t n;
     while ((n = write(fd, ptr, nbytes)) < 0) {
         if (EINTR == errno || EAGAIN == errno) {
@@ -105,6 +114,7 @@ ssize_t Write(int fd, const void *ptr, size_t nbytes) {
 
 
 ssize_t Readn(int fd, char *vptr, size_t nbytes) {
+    log("wrap Readn()");
     size_t nleft;
     size_t nread;
     char *ptr;
@@ -127,6 +137,7 @@ ssize_t Readn(int fd, char *vptr, size_t nbytes) {
 }
 
 ssize_t Writen(int fd, const char *vptr, size_t nbytes) {
+    log("wrap Writen()");
     size_t nleft;
     size_t nwritten;
     const char *ptr;
@@ -148,6 +159,7 @@ ssize_t Writen(int fd, const char *vptr, size_t nbytes) {
 
 
 int Select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout) {
+    log("wrap Select()");
     int n;
     if ((n = select(nfds, readfds, writefds, exceptfds, timeout)) < 0) {
         log_then_exit("Select error: ");

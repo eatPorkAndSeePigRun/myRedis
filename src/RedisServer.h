@@ -21,14 +21,14 @@ private:
     struct sockaddr_in servaddr;
     int listenfd;
     map<string, string> db;
-    fd_set *readfds;
-    fd_set *writefds;
+    fd_set readfds;
+    fd_set writefds;
     map<int, vector<string> > msg;
     bool is_open;
     bool is_close;
     vector<int> clientfds;
 public:
-    RedisServer(uint32_t ip, uint32_t port);
+    RedisServer(uint16_t ip, uint16_t port);
 
     ~RedisServer();
 

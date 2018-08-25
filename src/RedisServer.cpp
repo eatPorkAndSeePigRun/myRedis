@@ -1,3 +1,4 @@
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
@@ -15,7 +16,7 @@
 using namespace std;
 
 
-RedisServer::RedisServer(uint32_t ip, uint32_t port) {
+RedisServer::RedisServer(uint16_t ip, uint16_t port) {
     this->ip = ip;
     this->port = port;
     this->is_open = true;
@@ -43,6 +44,9 @@ void RedisServer::open() {
     this->servaddr.sin_port = htons(this->port);
     Bind(this->listenfd, (struct sockaddr *) &(this->servaddr), sizeof(this->servaddr));
     Listen(this->listenfd, 20);
+    FD_ZERO(&this->readfds);
+    FD_ZERO(&this->writefds);
+    FD_SET(this->listenfd, &this->readfds);
 }
 
 
@@ -61,9 +65,14 @@ void RedisServer::close() {
 
 void RedisServer::run() {
     log("RedisServer run()");
+    fd_set readfds, writefds;
+    FD_ZERO(&readfds);
+    FD_ZERO(&writefds);
     while (true) {
-        Select(this->listenfd, this->readfds, this->writefds, NULL, NULL);
-        if (FD_ISSET(this->listenfd, this->readfds)) {
+        readfds = this->readfds;
+        writefds = this->writefds;
+        Select(this->listenfd + 1024, &readfds, &writefds, NULL, NULL);
+        if (FD_ISSET(this->listenfd, &readfds)) {
             struct sockaddr_in cliaddr;
             socklen_t cliaddr_len;
             int connfd = Accept4(this->listenfd, (struct sockaddr *) &cliaddr, &cliaddr_len, SOCK_NONBLOCK);
@@ -72,25 +81,27 @@ void RedisServer::run() {
             this->msg[connfd] = temp;
         }
         for (auto fd: this->clientfds) {
-            if (FD_ISSET(fd, this->readfds)) {
+            if (FD_ISSET(fd, &readfds)) {
                 string data;
                 Readn(fd, (char *) data.data(), 1024);
                 if (!data.empty()) {
                     string temp = this->execute(data);
                     this->msg[fd].push_back(temp);
-                    if (FD_ISSET(fd, this->writefds)) {
-                        FD_SET(fd, this->writefds);
+                    if (FD_ISSET(fd, &this->writefds)) {
+                        FD_SET(fd, &this->writefds);
                     }
                 }
             }
-            if (FD_ISSET(fd, this->writefds)) {
+        }
+        for (auto fd: this->clientfds) {
+            if (FD_ISSET(fd, &writefds)) {
                 if (this->msg.find(fd) != this->msg.end()) {
                     break;
                 }
                 string msg = this->msg[fd].back();
                 Writen(fd, (const char *) msg.data(), 1024);
                 this->msg[fd].pop_back();
-                FD_CLR(fd, this->writefds);
+                FD_CLR(fd, &this->writefds);
             }
         }
     }
