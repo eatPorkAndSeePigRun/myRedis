@@ -76,6 +76,7 @@ void RedisServer::run() {
             struct sockaddr_in cliaddr;
             socklen_t cliaddr_len;
             int connfd = Accept4(this->listenfd, (struct sockaddr *) &cliaddr, &cliaddr_len, SOCK_NONBLOCK);
+            FD_SET(connfd, &this->readfds);
             this->clientfds.push_back(connfd);
             vector<string> temp;
             this->msg[connfd] = temp;
@@ -83,11 +84,13 @@ void RedisServer::run() {
         for (auto fd: this->clientfds) {
             if (FD_ISSET(fd, &readfds)) {
                 string data;
-                Readn(fd, (char *) data.data(), 1024);
+                char dataChar[1024];
+                Read(fd, dataChar, 1024);
+                data = dataChar;
                 if (!data.empty()) {
                     string temp = this->execute(data);
                     this->msg[fd].push_back(temp);
-                    if (FD_ISSET(fd, &this->writefds)) {
+                    if (!FD_ISSET(fd, &this->writefds)) {
                         FD_SET(fd, &this->writefds);
                     }
                 }
@@ -95,11 +98,12 @@ void RedisServer::run() {
         }
         for (auto fd: this->clientfds) {
             if (FD_ISSET(fd, &writefds)) {
-                if (this->msg.find(fd) != this->msg.end()) {
+                if (this->msg.find(fd) == this->msg.end()) {
                     break;
                 }
                 string msg = this->msg[fd].back();
-                Writen(fd, (const char *) msg.data(), 1024);
+                char msgChar[1024] = {};
+                Writen(fd, msgChar, msg.length());
                 this->msg[fd].pop_back();
                 FD_CLR(fd, &this->writefds);
             }
@@ -116,7 +120,7 @@ string RedisServer::execute(string data) {
     int length = command.size();
     string method, key, value;
     if (0 == length) {
-        return "-Error message\r\n";
+        return "-Error message\\r\\n";
     } else if (2 == length) {
         method = command[0];
         key = command[1];
@@ -144,5 +148,5 @@ string RedisServer::execute(string data) {
         return encode("OK");
     }
 
-    return "-Error message\r\n";
+    return "-Error message\\r\\n";
 }

@@ -12,7 +12,7 @@ vector<string> decode(string str) {
     vector<string> result;
     try {
         vector<string> strs;
-        strs = splitString(str, "\r\n");
+        strs = splitString(str, "\\r\\n");
         int number = (int) (strs[0][1] - 48);
         if (number == 2) {
             string method;
