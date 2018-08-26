@@ -121,7 +121,7 @@ string RedisServer::execute(string data) {
     int length = command.size();
     string method, key, value;
     if (0 == length) {
-        return "-Error message\\r\\n";
+        return "-Error message\r\n";
     } else if (2 == length) {
         method = command[0];
         key = command[1];
@@ -149,5 +149,5 @@ string RedisServer::execute(string data) {
         return encode("OK");
     }
 
-    return "-Error message\\r\\n";
+    return "-Error message\r\n";
 }

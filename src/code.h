@@ -14,13 +14,13 @@ string encode(T command) {
     stringstream ss;
     ss << command;
     if (typeid(command) == typeid(int)) {
-        return ":" + ss.str() + "\\r\\n";
+        return ":" + ss.str() + "\r\n";
     } else if (typeid(command) == typeid(string)) {
-        return "+" + ss.str() + "\\r\\n";
+        return "+" + ss.str() + "\r\n";
     } else if (typeid(command) == typeid(const char *)) {
-        return "+" + ss.str() + "\\r\\n";
+        return "+" + ss.str() + "\r\n";
     }
-    return "-Error message\\r\\n";
+    return "-Error message\r\n";
 }
 
 vector<string> decode(string str);
