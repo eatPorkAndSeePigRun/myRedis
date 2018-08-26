@@ -103,6 +103,7 @@ void RedisServer::run() {
                 }
                 string msg = this->msg[fd].back();
                 char msgChar[1024] = {};
+		strcpy(msgChar, msg.c_str());
                 Writen(fd, msgChar, msg.length());
                 this->msg[fd].pop_back();
                 FD_CLR(fd, &this->writefds);
