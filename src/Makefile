@@ -1,5 +1,5 @@
 main.out:main.cpp RedisServer.o code.o log.o util.o wrap.o
-	g++ -Wall -std=c++11 RedisServer.o code.o log.o util.o wrap.o main.cpp -o main.out
+	g++ -Wall -std=c++11 -g RedisServer.o code.o log.o util.o wrap.o main.cpp -o main.out
 RedisServer.o:RedisServer.cpp 
 	g++ -c -Wall -std=c++11 RedisServer.cpp -o RedisServer.o
 code.o:code.cpp
