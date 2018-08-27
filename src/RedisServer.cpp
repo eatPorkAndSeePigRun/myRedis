@@ -91,6 +91,7 @@ void RedisServer::run() {
                 try {
                     string data;
                     char dataChar[1024] = {};
+                    // TODO:应该先处理read的data，再execute
                     Read(fd, dataChar, 1024);
                     data = dataChar;
                     if (!data.empty()) {
@@ -114,14 +115,20 @@ void RedisServer::run() {
         for (auto fd: this->clientfds) {
             if (FD_ISSET(fd, &writefds)) {
                 if (this->msg.find(fd) == this->msg.end()) {
-                    break;
+                    continue;
+                }
+                int msgNum = 0;
+                if (0 == (msgNum = this->msg[fd].size())) {
+                    continue;
                 }
                 try {
-                    string msg = this->msg[fd].back();
-                    char msgChar[1024] = {};
-                    strcpy(msgChar, msg.c_str());
-                    Writen(fd, msgChar, msg.length());
-                    this->msg[fd].pop_back();
+                    for (int i = 0; i < msgNum; ++i) {
+                        string msg = this->msg[fd].back();
+                        char msgChar[1024] = {};
+                        strcpy(msgChar, msg.c_str());
+                        Writen(fd, msgChar, msg.length());
+                        this->msg[fd].pop_back();
+                    }
                 } catch (...) {
                     if (FD_ISSET(fd, &this->writefds)) {
                         FD_CLR(fd, &this->writefds);
@@ -144,28 +151,28 @@ string RedisServer::execute(string data) {
     if (0 == length) {
         return "-Error message\r\n";
     } else if (2 == length) {
-        method = command[0];
-        key = command[1];
+        method = command.at(0);
+        key = command.at(1);
     } else if (3 == length) {
-        method = command[0];
-        key = command[1];
-        value = command[2];
+        method = command.at(0);
+        key = command.at(1);
+        value = command.at(2);
     }
 
-    if (method == "get") {
+    if ("get" == method) {
         if (this->db.find(key) != this->db.end()) {
             return encode(this->db[key]);
         } else {
             return encode("None");
         }
-    } else if (method == "del") {
+    } else if ("del" == method) {
         if (this->db.find(key) != this->db.end()) {
             this->db.erase(this->db.find(key));
             return encode(1);
         } else {
             return encode(0);
         }
-    } else if (method == "set") {
+    } else if ("set" == method) {
         this->db[key] = value;
         return encode("OK");
     }
