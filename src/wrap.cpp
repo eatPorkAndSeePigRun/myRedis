@@ -14,7 +14,6 @@ using namespace std;
 
 void log_then_exit(string msg) {
     string errcontent = strerror(errno);
-    msg = msg.substr(0, msg.length() - 1);
     log(msg + errcontent);
     exit(1);
 }

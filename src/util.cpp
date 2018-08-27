@@ -14,11 +14,12 @@ vector<string> splitString(const string &str, const string &pattern) {
     }
     string strs = str + pattern;
     size_t pos = strs.find(pattern);
-    size_t size = strs.size();
+    size_t strSize = strs.size();
+    size_t patternSize = pattern.size();
     while (pos != string::npos) {
         string x = strs.substr(0, pos);
         resVec.push_back(x);
-        strs = strs.substr(pos + 1, size);
+        strs = strs.substr(pos + patternSize, strSize);
         pos = strs.find(pattern);
     }
     return resVec;

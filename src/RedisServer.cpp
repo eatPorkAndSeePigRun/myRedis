@@ -84,7 +84,7 @@ void RedisServer::run() {
         for (auto fd: this->clientfds) {
             if (FD_ISSET(fd, &readfds)) {
                 string data;
-                char dataChar[1024];
+                char dataChar[1024] = {};
                 Read(fd, dataChar, 1024);
                 data = dataChar;
                 if (!data.empty()) {
@@ -103,7 +103,7 @@ void RedisServer::run() {
                 }
                 string msg = this->msg[fd].back();
                 char msgChar[1024] = {};
-		strcpy(msgChar, msg.c_str());
+                strcpy(msgChar, msg.c_str());
                 Writen(fd, msgChar, msg.length());
                 this->msg[fd].pop_back();
                 FD_CLR(fd, &this->writefds);
