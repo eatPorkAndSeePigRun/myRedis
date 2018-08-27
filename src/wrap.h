@@ -3,15 +3,12 @@
 
 #include <sys/socket.h>
 #include <sys/select.h>
-#include <stdlib.h>
-#include <errno.h>
+#include <cstdlib>
+#include <cerrno>
 
 #include <string>
 
 using namespace std;
-
-
-void log_then_exit(string msg);
 
 
 int Accept(int fd, struct sockaddr *sa, socklen_t *salenptr);

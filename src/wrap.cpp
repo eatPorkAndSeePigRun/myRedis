@@ -1,10 +1,10 @@
 #include <sys/socket.h>
 #include <asm/errno.h>
 #include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
+#include <cstring>
+#include <cstdlib>
+#include <cstdio>
+#include <cerrno>
 #include <string>
 #include "wrap.h"
 #include "log.h"
@@ -12,18 +12,11 @@
 using namespace std;
 
 
-void log_then_exit(string msg) {
-    string errcontent = strerror(errno);
-    log(msg + errcontent);
-    exit(1);
-}
-
-
 int Accept(int fd, struct sockaddr *sa, socklen_t *salenptr) {
     log("wrap Accept()");
     int n;
     if ((n = accept(fd, sa, salenptr)) < 0) {
-        log_then_exit("Accept error:");
+        log("***error***   Accept error: " + string(strerror(errno)));
     }
     return n;
 }
@@ -33,7 +26,7 @@ int Accept4(int fd, struct sockaddr *sa, socklen_t *salenptr, int flags) {
     log("wrap Accept4()");
     int n;
     if ((n = accept4(fd, sa, salenptr, flags)) < 0) {
-        log_then_exit("Accept4 error:");
+        log("***error***   Accept4 error: " + string(strerror(errno)));
     }
     return n;
 }
@@ -41,7 +34,8 @@ int Accept4(int fd, struct sockaddr *sa, socklen_t *salenptr, int flags) {
 void Bind(int fd, const struct sockaddr *sa, socklen_t salen) {
     log("wrap Bind()");
     if (bind(fd, sa, salen) < 0) {
-        log_then_exit("Bind error:");
+        log("***error***   Bind error: " + string(strerror(errno)));
+        exit(1);
     }
 }
 
@@ -49,7 +43,8 @@ void Bind(int fd, const struct sockaddr *sa, socklen_t salen) {
 void Connect(int fd, const struct sockaddr *sa, socklen_t salen) {
     log("wrap Connect()");
     if (connect(fd, sa, salen) < 0) {
-        log_then_exit("Connect error:");
+        log("***error***   Connect error: " + string(strerror(errno)));
+        exit(1);
     }
 }
 
@@ -57,7 +52,8 @@ void Connect(int fd, const struct sockaddr *sa, socklen_t salen) {
 void Listen(int fd, int backlog) {
     log("wrap Listen()");
     if (listen(fd, backlog) < 0) {
-        log_then_exit("Listen error:");
+        log("***error***   Listen error: " + string(strerror(errno)));
+        exit(1);
     }
 }
 
@@ -66,7 +62,8 @@ int Socket(int family, int type, int protocol) {
     log("wrap Socket()");
     int n;
     if ((n = socket(family, type, protocol)) < 0) {
-        log_then_exit("Socket error:");
+        log("***error***   Socket error: " + string(strerror(errno)));
+        exit(1);
     }
     return n;
 }
@@ -75,7 +72,8 @@ int Socket(int family, int type, int protocol) {
 void Close(int fd) {
     log("wrap Close()");
     if (close(fd) < 0) {
-        log_then_exit("close error:");
+        log("***error***   close error: " + string(strerror(errno)));
+        exit(1);
     }
 }
 
@@ -87,8 +85,7 @@ ssize_t Read(int fd, void *ptr, size_t nbytes) {
         if (EINTR == errno || EAGAIN == errno) {
             continue;
         } else {
-            string temp = strerror(errno);
-            log("Read error:" + temp);
+            log("***error***   Read error: " + string(strerror(errno)));
             return n;
         }
     }
@@ -103,8 +100,7 @@ ssize_t Write(int fd, const void *ptr, size_t nbytes) {
         if (EINTR == errno || EAGAIN == errno) {
             continue;
         } else {
-            string temp = strerror(errno);
-            log("Read error:" + temp);
+            log("***error***   Read error: " + string(strerror(errno)));
             return n;
         }
     }
@@ -161,7 +157,8 @@ int Select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struc
     log("wrap Select()");
     int n;
     if ((n = select(nfds, readfds, writefds, exceptfds, timeout)) < 0) {
-        log_then_exit("Select error: ");
+        log("***error***   Select error: " + string(strerror(errno)));
+        exit(1);
     }
     return n;
 }
