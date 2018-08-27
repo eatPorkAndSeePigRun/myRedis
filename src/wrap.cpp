@@ -122,7 +122,7 @@ ssize_t Readn(int fd, char *vptr, size_t nbytes) {
             } else {
                 return -1;
             }
-        } else if (nread == 0) {
+        } else if (0 == nread) {
             break;
         }
         nleft -= nread;
