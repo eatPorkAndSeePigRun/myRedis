@@ -3,8 +3,8 @@
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <vector>

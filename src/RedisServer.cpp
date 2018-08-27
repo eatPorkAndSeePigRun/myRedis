@@ -1,10 +1,11 @@
 #include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <stdlib.h>
-#include <string.h>
+#include <algorithm>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
-#include <errno.h>
+#include <cerrno>
 #include <vector>
 #include <string>
 #include <map>
@@ -56,7 +57,7 @@ void RedisServer::close() {
     }
     log("RedisServer close()");
     this->is_open = false;
-    for(auto fd: this->clientfds){
+    for (auto fd: this->clientfds) {
         Close(fd);
     }
     Close(this->listenfd);
@@ -71,11 +72,15 @@ void RedisServer::run() {
     while (true) {
         readfds = this->readfds;
         writefds = this->writefds;
-        Select(this->listenfd + 1024, &readfds, &writefds, NULL, NULL);
+        int maxfds = this->listenfd + this->clientfds.size() + 1;
+        Select(maxfds, &readfds, &writefds, nullptr, nullptr);
         if (FD_ISSET(this->listenfd, &readfds)) {
-            struct sockaddr_in cliaddr;
+            struct sockaddr_in cliaddr = {};
             socklen_t cliaddr_len;
             int connfd = Accept4(this->listenfd, (struct sockaddr *) &cliaddr, &cliaddr_len, SOCK_NONBLOCK);
+            if (0 == connfd) {
+                continue;
+            }
             FD_SET(connfd, &this->readfds);
             this->clientfds.push_back(connfd);
             vector<string> temp;
@@ -83,16 +88,26 @@ void RedisServer::run() {
         }
         for (auto fd: this->clientfds) {
             if (FD_ISSET(fd, &readfds)) {
-                string data;
-                char dataChar[1024] = {};
-                Read(fd, dataChar, 1024);
-                data = dataChar;
-                if (!data.empty()) {
-                    string temp = this->execute(data);
-                    this->msg[fd].push_back(temp);
-                    if (!FD_ISSET(fd, &this->writefds)) {
-                        FD_SET(fd, &this->writefds);
+                try {
+                    string data;
+                    char dataChar[1024] = {};
+                    Read(fd, dataChar, 1024);
+                    data = dataChar;
+                    if (!data.empty()) {
+                        string temp = this->execute(data);
+                        this->msg[fd].push_back(temp);
+                        if (!FD_ISSET(fd, &this->writefds)) {
+                            FD_SET(fd, &this->writefds);
+                        }
                     }
+                } catch (...) {
+                    FD_CLR(fd, &this->readfds);
+                    if (FD_ISSET(fd, &this->writefds)) {
+                        FD_CLR(fd, &this->writefds);
+                    }
+                    Close(fd);
+                    this->msg.erase(fd);
+                    this->clientfds.erase(find(this->clientfds.begin(), this->clientfds.end(), fd));
                 }
             }
         }
@@ -101,12 +116,18 @@ void RedisServer::run() {
                 if (this->msg.find(fd) == this->msg.end()) {
                     break;
                 }
-                string msg = this->msg[fd].back();
-                char msgChar[1024] = {};
-                strcpy(msgChar, msg.c_str());
-                Writen(fd, msgChar, msg.length());
-                this->msg[fd].pop_back();
-                FD_CLR(fd, &this->writefds);
+                try {
+                    string msg = this->msg[fd].back();
+                    char msgChar[1024] = {};
+                    strcpy(msgChar, msg.c_str());
+                    Writen(fd, msgChar, msg.length());
+                    this->msg[fd].pop_back();
+                } catch (...) {
+                    if (FD_ISSET(fd, &this->writefds)) {
+                        FD_CLR(fd, &this->writefds);
+                    }
+                }
+
             }
         }
     }
@@ -114,7 +135,7 @@ void RedisServer::run() {
 
 
 string RedisServer::execute(string data) {
-    log("RedisServer execute(), "+data);
+    log("RedisServer execute(), " + data);
     vector<string> command;
     command = decode(data);
 

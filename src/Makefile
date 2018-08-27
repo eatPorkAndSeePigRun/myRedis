@@ -1,12 +1,20 @@
-main.out:main.cpp RedisServer.o code.o log.o util.o wrap.o
-	g++ -Wall -std=c++11 -g RedisServer.o code.o log.o util.o wrap.o main.cpp -o main.out
-RedisServer.o:RedisServer.cpp 
-	g++ -c -Wall -std=c++11 RedisServer.cpp -o RedisServer.o
-code.o:code.cpp
-	g++ -c -Wall -std=c++11 code.cpp -o code.o
-wrap.o:wrap.cpp
-	g++ -c wrap.cpp -o wrap.o
-log.o:log.cpp
-	g++ -c -Wall -std=c++11 log.cpp -o log.o
-util.o:util.cpp
-	g++ -c -Wall -std=c++11 util.cpp -o util.o
+all: main
+
+main: main.o RedisServer.o code.o log.o util.o wrap.o
+	g++ -Wall -std=c++11 -g $^ -o $@
+
+clean:
+	-rm main *.o *.d
+
+.PHONY: clean
+
+sources = main.cpp RedisServer.cpp code.cpp log.cpp util.cpp wrap.cpp
+
+include $(sources:.cpp=.d)
+
+%.d: %.cpp
+	set -e; \
+	rm -f $@; \
+	$(CXX) -MM $(CXXFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
