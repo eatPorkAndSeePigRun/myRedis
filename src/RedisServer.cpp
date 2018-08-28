@@ -81,6 +81,10 @@ void RedisServer::run() {
             if (0 == connfd) {
                 continue;
             }
+            if (FD_SETSIZE == maxfds) {
+                Close(connfd);
+                continue;
+            }
             FD_SET(connfd, &this->readfds);
             this->clientfds.push_back(connfd);
             vector<string> temp;
