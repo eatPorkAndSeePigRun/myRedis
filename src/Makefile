@@ -7,7 +7,7 @@ wrap.o: wrap.cpp
 	g++ -c wrap.cpp
 
 clean:
-	-rm main *.o *.d
+	-rm main.out *.o *.d
 
 .PHONY: clean
 
