@@ -6,6 +6,7 @@
 
 using namespace std;
 
-void log(string msg);
+
+void log(const string &msg);
 
 #endif  //LOG_H

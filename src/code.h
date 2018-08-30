@@ -6,23 +6,24 @@
 #include <vector>
 #include <string>
 
-
 using namespace std;
 
+
 template<class T>
-string encode(T command) {
+void encode(string &result, const T &command) {
     stringstream ss;
     ss << command;
     if (typeid(command) == typeid(int)) {
-        return ":" + ss.str() + "\r\n";
+        result = ":" + ss.str() + "\r\n";
     } else if (typeid(command) == typeid(string)) {
-        return "+" + ss.str() + "\r\n";
+        result = "+" + ss.str() + "\r\n";
     } else if (typeid(command) == typeid(const char *)) {
-        return "+" + ss.str() + "\r\n";
+        result = "+" + ss.str() + "\r\n";
+    } else {
+        result = "-Error message\r\n";
     }
-    return "-Error message\r\n";
 }
 
-vector<string> decode(string str);
+bool decode(vector<string> &result, const string &str);
 
 #endif  //CODE_H

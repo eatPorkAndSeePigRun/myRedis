@@ -1,5 +1,3 @@
-#include <cstdlib>
-#include <sstream>
 #include <string>
 #include <vector>
 #include "util.h"
@@ -7,11 +5,11 @@
 using namespace std;
 
 
-vector<string> splitString(const string &str, const string &pattern) {
-    vector<string> resVec;
+bool splitString(vector<string> &resVec, const string &str, const string &pattern) {
     if ("" == str) {
-        return resVec;
+        return false;
     }
+    resVec.clear();
     string strs = str + pattern;
     size_t pos = strs.find(pattern);
     size_t strSize = strs.size();
@@ -22,5 +20,5 @@ vector<string> splitString(const string &str, const string &pattern) {
         strs = strs.substr(pos + patternSize, strSize);
         pos = strs.find(pattern);
     }
-    return resVec;
+    return true;
 }
