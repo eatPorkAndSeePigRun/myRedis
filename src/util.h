@@ -7,6 +7,6 @@
 using namespace std;
 
 
-vector<string> splitString(const string &str, const string &pattern);
+bool splitString(vector<string> &resVec, const string &str, const string &pattern);
 
 #endif //UTIL_H
