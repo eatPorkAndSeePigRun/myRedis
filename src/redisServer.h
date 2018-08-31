@@ -27,6 +27,15 @@ private:
     map<int, vector<string> > msg;
     bool is_open;
     vector<int> clientfds;
+
+    bool listenReadfds();
+
+    void clientReadfds(const fd_set &readfds);
+
+    void clientWritefds(const fd_set &writefds);
+
+    bool execute(string &data);
+
 public:
     RedisServer(uint16_t ip, uint16_t port);
 
@@ -36,13 +45,6 @@ public:
 
     bool run();
 
-    bool listenReadfds();
-
-    void clientReadfds(const fd_set &readfds);
-
-    void clientWritefds(const fd_set &writefds);
-
-    bool execute(string &data);
 };
 
 #endif //REDISSERVER_H

@@ -10,7 +10,7 @@ using namespace std;
 
 
 template<class T>
-void encode(string &result, const T &command) {
+void encode(string &result, T command) {
     stringstream ss;
     ss << command;
     if (typeid(command) == typeid(int)) {
