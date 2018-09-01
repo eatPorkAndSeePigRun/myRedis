@@ -14,28 +14,28 @@ using namespace std;
 
 ssize_t Read(int fd, void *ptr, size_t nbytes) {
     ssize_t n;
-    while ((n = read(fd, ptr, nbytes)) < 0) {
+    while ((n = read(fd, ptr, nbytes)) == -1) {
         if (EINTR == errno || EAGAIN == errno) {
             continue;
         } else {
             log("***error***   Read error: " + string(strerror(errno)));
-            return n;
+            return -1;
         }
     }
-    log("wrap.cpp Read(), fd: " + to_string(fd) + " ptr: " + string((char *) ptr) + " nbytes: " + to_string(nbytes));
+    log("wrap.cpp Read(), fd: " + to_string(fd) + " nbytes: " + to_string(nbytes) + " ptr: " + string((char *) ptr));
     return n;
 }
 
 
 ssize_t Write(int fd, const void *ptr, size_t nbytes) {
-    log("wrap.cpp Write(), fd: " + to_string(fd) + " ptr: " + string((char *) ptr) + " nbytes: " + to_string(nbytes));
+//    log("wrap.cpp Write(), fd: " + to_string(fd) + " ptr: " + string((char *) ptr) + " nbytes: " + to_string(nbytes));
     ssize_t n;
-    while ((n = write(fd, ptr, nbytes)) < 0) {
+    while ((n = write(fd, ptr, nbytes)) == -1) {
         if (EINTR == errno || EAGAIN == errno) {
             continue;
         } else {
             log("***error***   Read error: " + string(strerror(errno)));
-            return n;
+            return -1;
         }
     }
     return n;
@@ -66,8 +66,7 @@ ssize_t Readn(int fd, char *vptr, size_t nbytes) {
 }
 
 ssize_t Writen(int fd, const char *vptr, size_t nbytes) {
-    log("wrap.cpp Writen(), fd: " + to_string(fd) + " vptr: " + string((char *) vptr) + " nbytes: " +
-        to_string(nbytes));
+    log("wrap.cpp Writen(), fd: " + to_string(fd)+ " nbytes: " + to_string(nbytes) + " vptr: " + string((char *) vptr));
     size_t nleft;
     size_t nwritten;
     const char *ptr;

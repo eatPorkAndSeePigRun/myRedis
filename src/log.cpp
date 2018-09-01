@@ -14,8 +14,5 @@ void log(const string &msg) {
     time(&curtime);
     string time = ctime(&curtime);
     time.pop_back();
-    fstream file;
-    file.open("server.log", fstream::in|fstream::out|fstream::app);
     file<<time<<"    "<<msg<<endl;
-    file.close(); 
 }
