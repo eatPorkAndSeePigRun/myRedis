@@ -25,6 +25,7 @@ private:
     fd_set readfds;
     fd_set writefds;
     map<int, vector<string> > msg;
+	map<int, string> tempdata;
     bool is_open;
     vector<int> clientfds;
 

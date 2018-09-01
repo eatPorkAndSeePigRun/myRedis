@@ -31,15 +31,6 @@ RedisServer::~RedisServer() {
         return;
     }
     this->is_open = false;
-    for (auto fd: this->clientfds) {
-        if (close(fd) < 0) {
-            log("***error*** redisServer.cpp ~RedisServer() -> close(), fd: " + to_string(fd));
-            continue;
-        }
-    }
-    if (close(this->listenfd) < 0) {
-        log("***error*** redisServer.cpp ~RedisServer() -> close(), fd: " + to_string(this->listenfd));
-    }
     log("redisServer.cpp ~RedisServer()");
 }
 
@@ -104,15 +95,13 @@ bool RedisServer::listenReadfds() {
         return false;
     }
     if (FD_SETSIZE == this->maxfds) {
-        if (close(connfd) < 0) {
-            log("***error*** redisServer.cpp listenReadfds(), fd: " + to_string(connfd));
-        }
         return false;
     }
     FD_SET(connfd, &this->readfds);
     this->clientfds.push_back(connfd);
     vector<string> temp = {};
     this->msg[connfd] = temp;
+	this->tempdata[connfd] = "";
     log("redisServer.cpp listenReadfds(), connfd: " + to_string(connfd));
     return true;
 }
@@ -123,8 +112,8 @@ void RedisServer::clientReadfds(const fd_set &readfds) {
             // 日志
             log("redisServer.cpp clientReadfds(), fd: " + to_string(fd));
             // 处理
-            char dataChar[1024] = {};
-            switch (Read(fd, dataChar, 1024)) {
+            char dataChar[0xffff] = {};
+            switch (Read(fd, dataChar, 0xffff)) {
                 case -1:
                     continue;
                     break;
@@ -138,9 +127,19 @@ void RedisServer::clientReadfds(const fd_set &readfds) {
                     this->clientfds.erase(find(this->clientfds.begin(), this->clientfds.end(), fd));
                     break;
                 default:
-                    string data = dataChar;
-                    this->execute(data);
-                    this->msg[fd].push_back(data);
+                    this->tempdata[fd] = this->tempdata[fd] + string(dataChar);
+					string data;
+					while (this->tempdata[fd].at(0) == '*') {
+                        this->tempdata[fd].erase(0, 1);
+                        size_t pos = this->tempdata[fd].find('*');
+                        if (pos == string::npos) {
+                            break;
+                        }
+                        data = "*" + this->tempdata[fd].substr(0, pos);
+                        this->tempdata[fd].erase(0, pos);
+                    	this->execute(data);
+                    	this->msg[fd].push_back(data);
+					}
                     if (!FD_ISSET(fd, &this->writefds)) {
                         FD_SET(fd, &this->writefds);
                     }
@@ -157,20 +156,20 @@ void RedisServer::clientWritefds(const fd_set &writefds) {
             if (this->msg.find(fd) == this->msg.end()) {
                 continue;
             }
-            int msgNum = 0;
-            if (0 == (msgNum = this->msg[fd].size())) {
+            if (0 == this->msg[fd].size()) {
                 continue;
             }
             // 日志
             log("redisServer.cpp clientWritefds(), fd: " + to_string(fd));
             // 处理
-            for (int i = 0; i < msgNum; ++i) {
-                string msg = this->msg[fd].back();
-                char msgChar[1024] = {};
-                strcpy(msgChar, msg.c_str());
-                Writen(fd, msgChar, msg.length());
-                this->msg[fd].pop_back();
-            }
+            string msg;
+			for (auto item: this->msg[fd]) {
+				msg = msg + item;
+			}
+			this->msg[fd].clear();
+            char msgChar[0xffff] = {};
+            strcpy(msgChar, msg.c_str());
+            Writen(fd, msgChar, msg.length());
             if (FD_ISSET(fd, &this->writefds)) {
                 FD_CLR(fd, &this->writefds);
             }
@@ -223,3 +222,4 @@ bool RedisServer::execute(string &data) {
     }
     return true;
 }
+
