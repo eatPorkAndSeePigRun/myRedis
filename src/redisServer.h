@@ -25,7 +25,7 @@ private:
     fd_set readfds;
     fd_set writefds;
     map<int, vector<string> > msg;
-	map<int, string> tempdata;
+	map<int, string> requestData;
     bool is_open;
     vector<int> clientfds;
 
@@ -34,6 +34,8 @@ private:
     void clientReadfds(const fd_set &readfds);
 
     void clientWritefds(const fd_set &writefds);
+
+	int handleRequestData(string &requestData);
 
     bool execute(string &data);
 

@@ -10,6 +10,7 @@
 #include <cerrno>
 #include <vector>
 #include <string>
+#include <regex>
 #include <map>
 #include "redisServer.h"
 #include "wrap.h"
@@ -101,7 +102,7 @@ bool RedisServer::listenReadfds() {
     this->clientfds.push_back(connfd);
     vector<string> temp = {};
     this->msg[connfd] = temp;
-	this->tempdata[connfd] = "";
+	this->requestData[connfd] = "";
     log("redisServer.cpp listenReadfds(), connfd: " + to_string(connfd));
     return true;
 }
@@ -127,18 +128,13 @@ void RedisServer::clientReadfds(const fd_set &readfds) {
                     this->clientfds.erase(find(this->clientfds.begin(), this->clientfds.end(), fd));
                     break;
                 default:
-                    this->tempdata[fd] = this->tempdata[fd] + string(dataChar);
-					string data;
-					while (this->tempdata[fd].at(0) == '*') {
-                        this->tempdata[fd].erase(0, 1);
-                        size_t pos = this->tempdata[fd].find('*');
-                        if (pos == string::npos) {
-                            break;
-                        }
-                        data = "*" + this->tempdata[fd].substr(0, pos);
-                        this->tempdata[fd].erase(0, pos);
-                    	this->execute(data);
-                    	this->msg[fd].push_back(data);
+                    this->requestData[fd] = this->requestData[fd] + string(dataChar);
+					int pos = 0;
+					while ((pos = this->handleRequestData(this->requestData[fd])) != 0) {
+						string request = this->requestData[fd].substr(0, pos);
+                    	this->execute(request);
+                        this->requestData[fd].erase(0, pos);
+                    	this->msg[fd].push_back(request);
 					}
                     if (!FD_ISSET(fd, &this->writefds)) {
                         FD_SET(fd, &this->writefds);
@@ -175,6 +171,32 @@ void RedisServer::clientWritefds(const fd_set &writefds) {
             }
         }
     }
+}
+
+int RedisServer::handleRequestData(string &requestData) {
+    log("redisServer.cpp handleRequestData()");
+	stringstream ss;
+	smatch m;
+	auto pos = requestData.cbegin();
+	if (!regex_search(pos, requestData.cend(), m, regex("(\\*)([0-9]+)(\r\n)"))) {
+		return 0;
+	}
+	int arrayLen = 0;
+	for (auto i = m.begin() + 2; i != m.end() - 1; i++) {
+		ss << *i;
+		arrayLen = arrayLen * 10 + ss.str().at(0) - '0';
+		ss.str("");
+	}
+	int requestlength = m.length();
+	pos = pos + m.length();
+	for (int i = 0; i < arrayLen; i++) {
+		if (!regex_search(pos, requestData.cend(), m, regex("(\\$)([0-9]+)(\r\n)([a-zA-Z0-9\\:\\_]+)(\r\n)"))) {
+			return 0;
+		}
+		requestlength = requestlength + m.length();
+		pos = pos + m.length();
+	}	
+	return requestlength;
 }
 
 bool RedisServer::execute(string &data) {
