@@ -35,7 +35,7 @@ private:
 
     void clientWritefds(const fd_set &writefds);
 
-	int handleRequestData(string &requestData);
+	int handleRequestData(const string &requestData);
 
     bool execute(string &data);
 

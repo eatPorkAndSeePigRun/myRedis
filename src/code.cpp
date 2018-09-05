@@ -8,6 +8,26 @@
 using namespace std;
 
 
+void encode(string &result, const string &method, bool t) {
+	if ("set" == method) {
+		result = "+OK\r\n";
+	} else if ("get" == method) {
+		if (t) {
+			result = "$" + to_string(result.length()) + "\r\n" + result + "\r\n";
+		} else {
+			result = "$-1\r\n";
+		}
+	} else if ("del" == method) {
+		if (t) {
+			result = ":1\r\n";
+		} else {
+			result = ":0\r\n";
+		}
+	} else {
+		result = "-Error message\r\n";
+	}
+}
+
 bool decode(vector<string> &result, const string &str) {
     vector<string> substrs = {};
     splitString(substrs, str, "\r\n");

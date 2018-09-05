@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <cstdlib>
+#include <sstream>
 #include <cstdio>
 #include <cerrno>
 #include <string>
@@ -22,13 +23,17 @@ ssize_t Read(int fd, void *ptr, size_t nbytes) {
             return -1;
         }
     }
-    log("wrap.cpp Read(), fd: " + to_string(fd) + " nbytes: " + to_string(nbytes) + " ptr: " + string((char *) ptr));
+	stringstream ss;
+	ss << " fd: " << fd << " nbytes: " << nbytes << " ptr: " << &ptr;
+    log("wrap.cpp Read()," + ss.str());
     return n;
 }
 
 
 ssize_t Write(int fd, const void *ptr, size_t nbytes) {
-//    log("wrap.cpp Write(), fd: " + to_string(fd) + " ptr: " + string((char *) ptr) + " nbytes: " + to_string(nbytes));
+	stringstream ss;
+	ss << " fd: " << fd << " nbytes: " << nbytes << " ptr: " << &ptr;
+    log("wrap.cpp Write()," + ss.str());
     ssize_t n;
     while ((n = write(fd, ptr, nbytes)) == -1) {
         if (EINTR == errno || EAGAIN == errno) {
@@ -61,12 +66,16 @@ ssize_t Readn(int fd, char *vptr, size_t nbytes) {
         nleft -= nread;
         ptr += nread;
     }
-    log("wrap.cpp Readn(), fd: " + to_string(fd) + " vptr: " + string((char *) vptr) + " nbytes: " + to_string(nbytes));
+	stringstream ss;
+	ss << " fd: " << fd << " nbytes: " << nbytes << " vptr: " << &vptr;
+    log("wrap.cpp Readn()," + ss.str());
     return (nbytes - nleft);
 }
 
 ssize_t Writen(int fd, const char *vptr, size_t nbytes) {
-    log("wrap.cpp Writen(), fd: " + to_string(fd)+ " nbytes: " + to_string(nbytes) + " vptr: " + string((char *) vptr));
+	stringstream ss;
+	ss << " fd: " << fd << " nbytes: " << nbytes << " vptr: " << &vptr;
+    log("wrap.cpp Writen()," + ss.str());
     size_t nleft;
     size_t nwritten;
     const char *ptr;
