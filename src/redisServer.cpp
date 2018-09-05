@@ -10,7 +10,6 @@
 #include <cerrno>
 #include <vector>
 #include <string>
-#include <regex>
 #include <map>
 #include "redisServer.h"
 #include "wrap.h"
@@ -108,7 +107,7 @@ bool RedisServer::listenReadfds() {
 }
 
 void RedisServer::clientReadfds(const fd_set &readfds) {
-    for (auto fd: this->clientfds) {
+    for (auto &fd: this->clientfds) {
         if (FD_ISSET(fd, &readfds)) {
             // 日志
             log("redisServer.cpp clientReadfds(), fd: " + to_string(fd));
@@ -146,7 +145,7 @@ void RedisServer::clientReadfds(const fd_set &readfds) {
 }
 
 void RedisServer::clientWritefds(const fd_set &writefds) {
-    for (auto fd: this->clientfds) {
+    for (auto &fd: this->clientfds) {
         if (FD_ISSET(fd, &writefds)) {
             // 输入检查
             if (this->msg.find(fd) == this->msg.end()) {
@@ -159,7 +158,7 @@ void RedisServer::clientWritefds(const fd_set &writefds) {
             log("redisServer.cpp clientWritefds(), fd: " + to_string(fd));
             // 处理
             string msg;
-			for (auto item: this->msg[fd]) {
+			for (auto &item: this->msg[fd]) {
 				msg = msg + item;
 			}
 			this->msg[fd].clear();
@@ -173,30 +172,33 @@ void RedisServer::clientWritefds(const fd_set &writefds) {
     }
 }
 
-int RedisServer::handleRequestData(string &requestData) {
+int RedisServer::handleRequestData(const string &requestData) {
     log("redisServer.cpp handleRequestData()");
-	stringstream ss;
-	smatch m;
-	auto pos = requestData.cbegin();
-	if (!regex_search(pos, requestData.cend(), m, regex("(\\*)([0-9]+)(\r\n)"))) {
+	auto p = requestData.begin();
+    if ('*' != *p) {
+        return 0;
+    }
+    p++;
+    int arrayLength = 0;
+    for (; '\r' != *p; p++) {
+        arrayLength = arrayLength * 10 + *p - '0';
+    }
+    p = p + 2;
+    for (int i = 0; i < arrayLength; i++) {
+        if ('$' != *p) {
+            return 0;
+        }
+        p++;
+        int subsLength = 0;
+        for (; '\r' != *p; p++) {
+            subsLength = subsLength * 10 + *p - '0';
+        }
+        p = p + 2 + subsLength + 2;
+    }
+	if (p > requestData.end()) {
 		return 0;
 	}
-	int arrayLen = 0;
-	for (auto i = m.begin() + 2; i != m.end() - 1; i++) {
-		ss << *i;
-		arrayLen = arrayLen * 10 + ss.str().at(0) - '0';
-		ss.str("");
-	}
-	int requestlength = m.length();
-	pos = pos + m.length();
-	for (int i = 0; i < arrayLen; i++) {
-		if (!regex_search(pos, requestData.cend(), m, regex("(\\$)([0-9]+)(\r\n)([a-zA-Z0-9\\:\\_]+)(\r\n)"))) {
-			return 0;
-		}
-		requestlength = requestlength + m.length();
-		pos = pos + m.length();
-	}	
-	return requestlength;
+    return int(p - requestData.begin());
 }
 
 bool RedisServer::execute(string &data) {
@@ -212,18 +214,17 @@ bool RedisServer::execute(string &data) {
             method = command.at(0);
             key = command.at(1);
             if ("get" == method) {
-                if (this->db.find(key) != this->db.end()) {
-                    encode(data, this->db[key]);
-                } else {
-                    encode(data, "None");
-                }
+            	bool t = (this->db.find(key) != this->db.end());
+                if (t) {
+					data = this->db[key];
+                } 
+                encode(data, method, t);
             } else if ("del" == method) {
-                if (this->db.find(key) != this->db.end()) {
+                bool t = (this->db.find(key) != this->db.end());
+                if (t) {
                     this->db.erase(this->db.find(key));
-                    encode(data, 1);
-                } else {
-                    encode(data, 0);
                 }
+                encode(data, method, t);
             } else {
                 data = "-Error message\r\n";
             }
@@ -234,7 +235,7 @@ bool RedisServer::execute(string &data) {
             value = command.at(2);
             if ("set" == method) {
                 this->db[key] = value;
-                encode(data, "OK");
+                encode(data, method, true);
             } else {
                 data = "-Error message\r\n";
             }
