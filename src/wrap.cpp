@@ -1,6 +1,7 @@
 #include <sys/socket.h>
 #include <asm/errno.h>
 #include <unistd.h>
+#include <signal.h>
 #include <cstring>
 #include <cstdlib>
 #include <sstream>
@@ -14,35 +15,30 @@ using namespace std;
 
 
 ssize_t Read(int fd, void *ptr, size_t nbytes) {
+    signal(SIGPIPE, SIG_IGN);
     ssize_t n;
-    while ((n = read(fd, ptr, nbytes)) == -1) {
+    while (true) {
+        n = read(fd, ptr, nbytes);
         if (EINTR == errno || EAGAIN == errno) {
+            errno = 0;
             continue;
         } else {
-            log("***error***   Read error: " + string(strerror(errno)));
-            return -1;
+            break;
         }
     }
 	stringstream ss;
-	ss << " fd: " << fd << " nbytes: " << nbytes << " ptr: " << &ptr;
+	ss << " fd: " << fd << " n: " << n << " ptr: " << &ptr << " errno: " << errno;
     log("wrap.cpp Read()," + ss.str());
     return n;
 }
 
 
 ssize_t Write(int fd, const void *ptr, size_t nbytes) {
+    signal(SIGPIPE, SIG_IGN);
+    ssize_t n = write(fd, ptr, nbytes);
 	stringstream ss;
-	ss << " fd: " << fd << " nbytes: " << nbytes << " ptr: " << &ptr;
+	ss << " fd: " << fd << " n: " << n << " ptr: " << &ptr << " errno: " << errno;
     log("wrap.cpp Write()," + ss.str());
-    ssize_t n;
-    while ((n = write(fd, ptr, nbytes)) == -1) {
-        if (EINTR == errno || EAGAIN == errno) {
-            continue;
-        } else {
-            log("***error***   Read error: " + string(strerror(errno)));
-            return -1;
-        }
-    }
     return n;
 }
 
@@ -55,7 +51,7 @@ ssize_t Readn(int fd, char *vptr, size_t nbytes) {
     nleft = nbytes;
     while (nleft > 0) {
         if ((nread = Read(fd, ptr, nleft)) < 0) {
-            if (EINTR == errno || EAGAIN == errno) {
+            if (EINTR == errno) {
                 nread = 0;
             } else {
                 return -1;
@@ -83,7 +79,8 @@ ssize_t Writen(int fd, const char *vptr, size_t nbytes) {
     nleft = nbytes;
     while (nleft > 0) {
         if ((nwritten = Write(fd, ptr, nleft)) <= 0) {
-            if (nwritten < 0 && (EINTR == errno || EAGAIN == errno)) {
+            if ((nwritten < 0) && (EINTR == errno)) {
+                errno = 0;
                 nwritten = 0;
             } else {
                 return -1;
