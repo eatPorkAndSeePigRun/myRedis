@@ -4,7 +4,7 @@ main.out: main.o redisServer.o code.o log.o util.o wrap.o
 	g++ -Wall -std=c++11 -g $^ -o $@
 
 wrap.o: wrap.cpp
-	g++ -c wrap.cpp -Wall
+	g++ -g -c wrap.cpp -Wall
 
 clean:
 	-rm main.out *.o *.d
@@ -22,4 +22,4 @@ include $(sources:.cpp=.d)
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 
-CXXFLAGS = -Wall -std=c++11 -c
+CXXFLAGS = -Wall -std=c++11 -c -g

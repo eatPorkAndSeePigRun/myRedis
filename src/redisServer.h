@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 
 
 using namespace std;
@@ -27,7 +28,7 @@ private:
     map<int, vector<string> > msg;
 	map<int, string> requestData;
     bool is_open;
-    vector<int> clientfds;
+    set<int> clientfds;
 
     bool listenReadfds();
 
@@ -36,6 +37,8 @@ private:
     void clientWritefds(const fd_set &writefds);
 
 	int handleRequestData(const string &requestData);
+
+    void onDisconnection(int fd);
 
     bool execute(string &data);
 
