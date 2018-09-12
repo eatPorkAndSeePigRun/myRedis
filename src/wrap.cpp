@@ -1,5 +1,5 @@
 #include <sys/socket.h>
-#include <asm/errno.h>
+#include <system_error>
 #include <unistd.h>
 #include <signal.h>
 #include <cstring>
@@ -16,6 +16,7 @@ using namespace std;
 
 ssize_t Read(int fd, void *ptr, size_t nbytes) {
     signal(SIGPIPE, SIG_IGN);
+    errno = 0;
     ssize_t n;
     while (true) {
         n = read(fd, ptr, nbytes);
@@ -44,6 +45,7 @@ ssize_t Write(int fd, const void *ptr, size_t nbytes) {
 
 
 ssize_t Readn(int fd, char *vptr, size_t nbytes) {
+    errno = 0;
     size_t nleft;
     size_t nread;
     char *ptr;
@@ -52,6 +54,7 @@ ssize_t Readn(int fd, char *vptr, size_t nbytes) {
     while (nleft > 0) {
         if ((nread = Read(fd, ptr, nleft)) < 0) {
             if (EINTR == errno) {
+                errno = 0;
                 nread = 0;
             } else {
                 return -1;
@@ -69,6 +72,7 @@ ssize_t Readn(int fd, char *vptr, size_t nbytes) {
 }
 
 ssize_t Writen(int fd, const char *vptr, size_t nbytes) {
+    errno = 0;
 	stringstream ss;
 	ss << " fd: " << fd << " nbytes: " << nbytes << " vptr: " << &vptr;
     log("wrap.cpp Writen()," + ss.str());

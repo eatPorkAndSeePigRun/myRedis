@@ -14,7 +14,6 @@
 #include <set>
 #include "redisServer.h"
 #include "wrap.h"
-#include "code.h"
 #include "log.h"
 
 using namespace std;
@@ -124,13 +123,8 @@ void RedisServer::clientReadfds(const fd_set &readfds) {
                     break;
                 default:
                     this->requestData[fd] = this->requestData[fd] + string(dataChar);
-					int pos = 0;
-					while ((pos = this->handleRequestData(this->requestData[fd])) != 0) {
-						string request = this->requestData[fd].substr(0, pos);
-                    	this->execute(request);
-                        this->requestData[fd].erase(0, pos);
-                    	this->msg[fd].push_back(request);
-					}
+                    vector<string> command = {};
+					this->handleRequestData(fd, this->requestData[fd], command);
                     if (!FD_ISSET(fd, &this->writefds)) {
                         FD_SET(fd, &this->writefds);
                     }
@@ -177,33 +171,73 @@ void RedisServer::clientWritefds(const fd_set &writefds) {
     }
 }
 
-int RedisServer::handleRequestData(const string &requestData) {
+void RedisServer::handleRequestData(int fd, string &requestData, vector<string> &command) {
     //log("redisServer.cpp handleRequestData()");
 	auto p = requestData.begin();
-    if ('*' != *p) {
-        return 0;
-    }
-    p++;
-    int arrayLength = 0;
-    for (; *p >= '0' && *p <= '9'; p++) {
-        arrayLength = arrayLength * 10 + *p - '0';
-    }
-    p = p + 2;
-    for (int i = 0; i < arrayLength; i++) {
-        if ('$' != *p) {
-            return 0;
+    auto dataBegin = requestData.begin();
+    auto dataEnd = requestData.end();
+    string request;
+    while (p < dataEnd) {
+        dataBegin = p;
+        // array '*'
+        if ('*' == *p) {                                   
+            p++;
+        } else {
+            return;
         }
-        p++;
-        int subsLength = 0;
+        // array length
+        int arrayLength = 0;
         for (; *p >= '0' && *p <= '9'; p++) {
-            subsLength = subsLength * 10 + *p - '0';
+            arrayLength = arrayLength * 10 + *p - '0';
         }
-        p = p + 2 + subsLength + 2;
+        if (0 == arrayLength) {
+            return;
+        } else {
+            p = p + 2;
+        }
+        
+        vector<string> ().swap(command);
+        for (int i = 0; i < arrayLength; i++) {
+            // '$'
+            if ('$' == *p) {
+                p++;
+            } else {
+                return;
+            }
+            // length
+            int subsLength = 0;
+            for (; *p >= '0' && *p <= '9'; p++) {
+                subsLength = subsLength * 10 + *p - '0';
+            }
+            if (0 == subsLength) {
+                return;
+            }
+            // "\r\n"
+            if ( '\r' == *p && '\n' == *(p + 1)) {
+                p = p + 2;
+            } else {
+                return;
+            }
+            // command, key, value ....
+            auto begin = p;
+            while ('\r' != *p) {
+                p++;
+            }
+            auto end = p - 1;
+            command.push_back(string(begin, end));
+            // "\r\n"
+            if ( '\r' == *p && '\n' == *(p + 1)) {
+                p = p + 2;
+            } else {
+                return;
+            }
+        }
+
+        this->execute(request, command);
+        this->requestData[fd].erase(dataBegin, p);
+        this->msg[fd].push_back(request);
+        request = "";
     }
-	if (p > requestData.end()) {
-		return 0;
-	}
-    return int(p - requestData.begin());
 }
 
 void RedisServer::onDisconnection(int fd) {
@@ -217,30 +251,24 @@ void RedisServer::onDisconnection(int fd) {
     log("redisServer.cpp onDisconnection(), fd: " + to_string(fd)); 
 }
 
-bool RedisServer::execute(string &data) {
+bool RedisServer::execute(string &data, vector<string> &command) {
     //log("redisServer.cpp execute()");
-    vector<string> command = {};
-    if (!decode(command, data)) {
-        data = "-Error message\r\n";
-        return false;
-    }
+    data = "";
     string method, key, value;
     switch (command.size()) {
         case 2:
             method = command.at(0);
             key = command.at(1);
             if ("get" == method) {
-            	bool t = (this->db.find(key) != this->db.end());
-                if (t) {
+                if (this->db.find(key) != this->db.end()) {
 					data = this->db[key];
                 } 
-                encode(data, method, t);
+                data = "$" + to_string(data.length()) + "\r\n" + data + "\r\n";
             } else if ("del" == method) {
-                bool t = (this->db.find(key) != this->db.end());
-                if (t) {
+                if (this->db.find(key) != this->db.end()) {
                     this->db.erase(this->db.find(key));
                 }
-                encode(data, method, t);
+                data = ":1\r\n";
             } else {
                 data = "-Error message\r\n";
             }
@@ -251,7 +279,7 @@ bool RedisServer::execute(string &data) {
             value = command.at(2);
             if ("set" == method) {
                 this->db[key] = value;
-                encode(data, method, true);
+                data = "+OK\r\n";
             } else {
                 data = "-Error message\r\n";
             }

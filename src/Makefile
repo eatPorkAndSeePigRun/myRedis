@@ -1,17 +1,14 @@
 all: main.out
 
-main.out: main.o redisServer.o code.o log.o util.o wrap.o
+main.out: main.o redisServer.o log.o wrap.o
 	g++ -Wall -std=c++11 -g $^ -o $@
-
-wrap.o: wrap.cpp
-	g++ -g -c wrap.cpp -Wall
 
 clean:
 	-rm main.out *.o *.d
 
 .PHONY: clean
 
-sources = main.cpp redisServer.cpp code.cpp log.cpp util.cpp 
+sources = main.cpp redisServer.cpp log.cpp wrap.cpp 
 
 include $(sources:.cpp=.d)
 
