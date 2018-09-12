@@ -36,11 +36,11 @@ private:
 
     void clientWritefds(const fd_set &writefds);
 
-	int handleRequestData(const string &requestData);
+	void handleRequestData(int fd, string &requestData, vector<string> &command);
 
     void onDisconnection(int fd);
 
-    bool execute(string &data);
+    bool execute(string &data, vector<string> &command);
 
 public:
     RedisServer(uint16_t ip, uint16_t port);
