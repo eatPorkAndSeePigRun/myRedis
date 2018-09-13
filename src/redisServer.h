@@ -36,7 +36,7 @@ private:
 
     void clientWritefds(const fd_set &writefds);
 
-	void handleRequestData(int fd, string &requestData, vector<string> &command);
+	void handleRequestData(int fd, string &requestData);
 
     void onDisconnection(int fd);
 
