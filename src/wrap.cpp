@@ -15,7 +15,7 @@ using namespace std;
 
 
 ssize_t Read(int fd, void *ptr, size_t nbytes) {
-    signal(SIGPIPE, SIG_IGN);
+    //signal(SIGPIPE, SIG_IGN);
     errno = 0;
     ssize_t n;
     while (true) {
@@ -35,7 +35,7 @@ ssize_t Read(int fd, void *ptr, size_t nbytes) {
 
 
 ssize_t Write(int fd, const void *ptr, size_t nbytes) {
-    signal(SIGPIPE, SIG_IGN);
+    //signal(SIGPIPE, SIG_IGN);
     ssize_t n = write(fd, ptr, nbytes);
 	stringstream ss;
 	ss << " fd: " << fd << " n: " << n << " ptr: " << &ptr << " errno: " << errno;

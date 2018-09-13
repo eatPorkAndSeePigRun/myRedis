@@ -115,7 +115,7 @@ void RedisServer::clientReadfds(const fd_set &readfds) {
             char dataChar[0xffff] = {};
             switch (Read(fd, dataChar, 0xffff)) {
                 case -1:
-                    this->onDisconnection(fd);
+                    //this->onDisconnection(fd);
                     continue;
                     break;
                 case 0:
@@ -123,8 +123,7 @@ void RedisServer::clientReadfds(const fd_set &readfds) {
                     break;
                 default:
                     this->requestData[fd] = this->requestData[fd] + string(dataChar);
-                    vector<string> command = {};
-					this->handleRequestData(fd, this->requestData[fd], command);
+					this->handleRequestData(fd, this->requestData[fd]);
                     if (!FD_ISSET(fd, &this->writefds)) {
                         FD_SET(fd, &this->writefds);
                     }
@@ -171,13 +170,16 @@ void RedisServer::clientWritefds(const fd_set &writefds) {
     }
 }
 
-void RedisServer::handleRequestData(int fd, string &requestData, vector<string> &command) {
+void RedisServer::handleRequestData(int fd, string &requestData) {
     //log("redisServer.cpp handleRequestData()");
 	auto p = requestData.begin();
     auto dataBegin = requestData.begin();
     auto dataEnd = requestData.end();
     string request;
+    vector<string> command = {};
     while (p < dataEnd) {
+        requestData.erase(dataBegin, p);
+        p = requestData.begin();
         dataBegin = p;
         // array '*'
         if ('*' == *p) {                                   
@@ -223,7 +225,7 @@ void RedisServer::handleRequestData(int fd, string &requestData, vector<string> 
             while ('\r' != *p) {
                 p++;
             }
-            auto end = p - 1;
+            auto end = p;
             command.push_back(string(begin, end));
             // "\r\n"
             if ( '\r' == *p && '\n' == *(p + 1)) {
@@ -234,7 +236,6 @@ void RedisServer::handleRequestData(int fd, string &requestData, vector<string> 
         }
 
         this->execute(request, command);
-        this->requestData[fd].erase(dataBegin, p);
         this->msg[fd].push_back(request);
         request = "";
     }
@@ -259,16 +260,20 @@ bool RedisServer::execute(string &data, vector<string> &command) {
         case 2:
             method = command.at(0);
             key = command.at(1);
-            if ("get" == method) {
+            if ("GET" == method || "get" == method) {
                 if (this->db.find(key) != this->db.end()) {
 					data = this->db[key];
-                } 
-                data = "$" + to_string(data.length()) + "\r\n" + data + "\r\n";
-            } else if ("del" == method) {
+                    data = "$" + to_string(data.length()) + "\r\n" + data + "\r\n";
+                } else {
+                    data = "$-1\r\n";
+                }
+            } else if ("DEL" == method || "del" == method) {
                 if (this->db.find(key) != this->db.end()) {
                     this->db.erase(this->db.find(key));
+                    data = ":1\r\n";
+                } else {
+                    data = ":0\r\n";
                 }
-                data = ":1\r\n";
             } else {
                 data = "-Error message\r\n";
             }
@@ -277,7 +282,7 @@ bool RedisServer::execute(string &data, vector<string> &command) {
             method = command.at(0);
             key = command.at(1);
             value = command.at(2);
-            if ("set" == method) {
+            if ("SET" == method || "set" == method) {
                 this->db[key] = value;
                 data = "+OK\r\n";
             } else {
