@@ -178,9 +178,6 @@ void RedisServer::handleRequestData(int fd, string &requestData) {
     string request;
     vector<string> command = {};
     while (p < dataEnd) {
-        requestData.erase(dataBegin, p);
-        p = requestData.begin();
-        dataBegin = p;
         // array '*'
         if ('*' == *p) {                                   
             p++;
@@ -238,6 +235,9 @@ void RedisServer::handleRequestData(int fd, string &requestData) {
         this->execute(request, command);
         this->msg[fd].push_back(request);
         request = "";
+        requestData.erase(dataBegin, p);
+        p = requestData.begin();
+        dataBegin = p;
     }
 }
 
