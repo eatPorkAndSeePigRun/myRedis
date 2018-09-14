@@ -189,7 +189,7 @@ void RedisServer::handleRequestData(int fd, string &requestData) {
         for (; *p >= '0' && *p <= '9'; p++) {
             arrayLength = arrayLength * 10 + *p - '0';
         }
-        if (0 == arrayLength) {
+        if (0 == arrayLength || '\r' != *p || '\n' != *(p + 1)) {
             return;
         } else {
             p = p + 2;
@@ -212,15 +212,18 @@ void RedisServer::handleRequestData(int fd, string &requestData) {
                 return;
             }
             // "\r\n"
-            if ( '\r' == *p && '\n' == *(p + 1)) {
+            if ('\r' == *p && '\n' == *(p + 1) && '\000' != *(p + 2)) {
                 p = p + 2;
             } else {
                 return;
             }
             // command, key, value ....
             auto begin = p;
-            while ('\r' != *p) {
+            while ('\r' != *p && '\000' != *p) {
                 p++;
+            }
+            if ('\000' == *p) {
+                return;
             }
             auto end = p;
             command.push_back(string(begin, end));
