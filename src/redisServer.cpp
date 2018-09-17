@@ -61,11 +61,11 @@ bool RedisServer::init() {
     FD_ZERO(&this->readfds);
     FD_ZERO(&this->writefds);
     FD_SET(this->listenfd, &this->readfds);
-    return true;
-}
+        return true;
+    }
 
-bool RedisServer::run() {
-    log("redisServer.cpp run()");
+    bool RedisServer::run() {
+        log("redisServer.cpp run()");
     fd_set readfds, writefds;
     FD_ZERO(&readfds);
     FD_ZERO(&writefds);
@@ -236,7 +236,6 @@ void RedisServer::handleRequestData(int fd, string &requestData) {
         }
 
         this->execute(request, command);
-        //log("redisServer.cpp handleRequestData(), response: " + request);
         this->msg[fd].push_back(request);
         request = "";
         requestData.erase(dataBegin, p);
@@ -252,7 +251,7 @@ void RedisServer::onDisconnection(int fd) {
     }
     close(fd);
     this->msg.erase(fd);
-    //this->clientfds.erase(fd);
+    this->clientfds.erase(fd);
     log("redisServer.cpp onDisconnection(), fd: " + to_string(fd)); 
 }
 
