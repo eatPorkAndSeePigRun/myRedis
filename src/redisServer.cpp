@@ -115,7 +115,7 @@ void RedisServer::clientReadfds(const fd_set &readfds) {
             char dataChar[0xffff] = {};
             switch (Read(fd, dataChar, 0xffff)) {
                 case -1:
-                    //this->onDisconnection(fd);
+                    this->onDisconnection(fd);
                     continue;
                     break;
                 case 0:
@@ -236,6 +236,7 @@ void RedisServer::handleRequestData(int fd, string &requestData) {
         }
 
         this->execute(request, command);
+        //log("redisServer.cpp handleRequestData(), response: " + request);
         this->msg[fd].push_back(request);
         request = "";
         requestData.erase(dataBegin, p);

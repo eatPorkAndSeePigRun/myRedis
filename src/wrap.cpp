@@ -35,7 +35,6 @@ ssize_t Read(int fd, void *ptr, size_t nbytes) {
 
 
 ssize_t Write(int fd, const void *ptr, size_t nbytes) {
-    //signal(SIGPIPE, SIG_IGN);
     ssize_t n = write(fd, ptr, nbytes);
 	stringstream ss;
 	ss << " fd: " << fd << " n: " << n << " ptr: " << &ptr << " errno: " << errno;
@@ -72,6 +71,7 @@ ssize_t Readn(int fd, char *vptr, size_t nbytes) {
 }
 
 ssize_t Writen(int fd, const char *vptr, size_t nbytes) {
+    signal(SIGPIPE, SIG_IGN);
     errno = 0;
 	stringstream ss;
 	ss << " fd: " << fd << " nbytes: " << nbytes << " vptr: " << &vptr;
@@ -83,10 +83,12 @@ ssize_t Writen(int fd, const char *vptr, size_t nbytes) {
     nleft = nbytes;
     while (nleft > 0) {
         if ((nwritten = Write(fd, ptr, nleft)) <= 0) {
-            if ((nwritten < 0) && (EINTR == errno)) {
+            if (EINTR == errno) {
                 errno = 0;
                 nwritten = 0;
-            } else {
+            } else if (EPIPE == errno) {
+                return -1;
+            } else if (0 != errno) {
                 return -1;
             }
         }
