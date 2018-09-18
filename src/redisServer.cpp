@@ -251,7 +251,7 @@ void RedisServer::onDisconnection(int fd) {
     }
     close(fd);
     this->msg.erase(fd);
-    this->clientfds.erase(fd);
+    //this->clientfds.erase(fd);
     log("redisServer.cpp onDisconnection(), fd: " + to_string(fd)); 
 }
 
