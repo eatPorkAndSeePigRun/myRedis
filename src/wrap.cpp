@@ -17,7 +17,7 @@ using namespace std;
 ssize_t Read(int fd, void *ptr, size_t nbytes) {
     //signal(SIGPIPE, SIG_IGN);
     errno = 0;
-    ssize_t n;
+    ssize_t n = 0;
     while (true) {
         n = read(fd, ptr, nbytes);
         if (EINTR == errno || EAGAIN == errno) {
@@ -35,14 +35,25 @@ ssize_t Read(int fd, void *ptr, size_t nbytes) {
 
 
 ssize_t Write(int fd, const void *ptr, size_t nbytes) {
-    ssize_t n = write(fd, ptr, nbytes);
+    signal(SIGPIPE, SIG_IGN);
+    ssize_t n;
+    while (true) {
+        n = write(fd, ptr, nbytes);
+        if (EINTR == errno || EAGAIN == errno) {
+            continue;
+        //} else if (EPIPE == errno || ECONNRESET == errno) {
+        //    break;
+        } else {
+            break;
+        }
+    }
 	stringstream ss;
 	ss << " fd: " << fd << " n: " << n << " ptr: " << &ptr << " errno: " << errno;
     log("wrap.cpp Write()," + ss.str());
     return n;
 }
 
-
+/*
 ssize_t Readn(int fd, char *vptr, size_t nbytes) {
     errno = 0;
     size_t nleft;
@@ -69,12 +80,12 @@ ssize_t Readn(int fd, char *vptr, size_t nbytes) {
     log("wrap.cpp Readn()," + ss.str());
     return (nbytes - nleft);
 }
+*/
 
 ssize_t Writen(int fd, const char *vptr, size_t nbytes) {
-    signal(SIGPIPE, SIG_IGN);
     errno = 0;
 	stringstream ss;
-	ss << " fd: " << fd << " nbytes: " << nbytes << " vptr: " << &vptr;
+	ss << " fd: " << fd << " nbytes: " << nbytes << " vptr: " << &vptr << " errno: " << errno;
     log("wrap.cpp Writen()," + ss.str());
     size_t nleft;
     size_t nwritten;
@@ -82,15 +93,12 @@ ssize_t Writen(int fd, const char *vptr, size_t nbytes) {
     ptr = vptr;
     nleft = nbytes;
     while (nleft > 0) {
-        if ((nwritten = Write(fd, ptr, nleft)) <= 0) {
-            if (EINTR == errno) {
-                errno = 0;
-                nwritten = 0;
-            } else if (EPIPE == errno) {
-                return -1;
-            } else if (0 != errno) {
-                return -1;
-            }
+        nwritten = Write(fd, ptr, nleft);
+        ss.str("");
+        ss << " nwritten: " << nwritten << " errno: " << errno;
+        log("wrap.cpp Writen(), nwritten:" + ss.str());
+        if (nwritten <= 0 || nwritten == 18446744073709551615) {
+            return -1;
         }
         nleft -= nwritten;
         ptr += nwritten;
