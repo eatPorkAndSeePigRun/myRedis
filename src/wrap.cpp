@@ -1,11 +1,7 @@
-#include <sys/socket.h>
 #include <system_error>
 #include <unistd.h>
 #include <signal.h>
-#include <cstring>
-#include <cstdlib>
 #include <sstream>
-#include <cstdio>
 #include <cerrno>
 #include <string>
 #include "wrap.h"
@@ -16,19 +12,21 @@ using namespace std;
 
 ssize_t Read(int fd, void *ptr, size_t nbytes) {
     //signal(SIGPIPE, SIG_IGN);
-    errno = 0;
     ssize_t n = 0;
     while (true) {
         n = read(fd, ptr, nbytes);
-        if (EINTR == errno || EAGAIN == errno) {
-            errno = 0;
-            continue;
+        if (n < 0) {
+            if (EINTR == errno || EAGAIN == errno) {
+                continue;
+            } else {
+                break;
+            }
         } else {
             break;
         }
     }
-	stringstream ss;
-	ss << " fd: " << fd << " n: " << n << " ptr: " << &ptr << " errno: " << errno;
+    stringstream ss;
+    ss << " fd: " << fd << " n: " << n << " ptr: " << &ptr << " errno: " << errno;
     log("wrap.cpp Read()," + ss.str());
     return n;
 }
@@ -37,18 +35,14 @@ ssize_t Read(int fd, void *ptr, size_t nbytes) {
 ssize_t Write(int fd, const void *ptr, size_t nbytes) {
     signal(SIGPIPE, SIG_IGN);
     ssize_t n;
-    while (true) {
-        n = write(fd, ptr, nbytes);
+    n = write(fd, ptr, nbytes);
+    if (n < 0) {
         if (EINTR == errno || EAGAIN == errno) {
-            continue;
-        //} else if (EPIPE == errno || ECONNRESET == errno) {
-        //    break;
-        } else {
-            break;
+            n = -2;
         }
     }
-	stringstream ss;
-	ss << " fd: " << fd << " n: " << n << " ptr: " << &ptr << " errno: " << errno;
+    stringstream ss;
+    ss << " fd: " << fd << " n: " << n << " ptr: " << &ptr << " errno: " << errno;
     log("wrap.cpp Write()," + ss.str());
     return n;
 }
@@ -82,11 +76,12 @@ ssize_t Readn(int fd, char *vptr, size_t nbytes) {
 }
 */
 
+/*
 ssize_t Writen(int fd, const char *vptr, size_t nbytes) {
     errno = 0;
-	stringstream ss;
-	ss << " fd: " << fd << " nbytes: " << nbytes << " vptr: " << &vptr << " errno: " << errno;
-    log("wrap.cpp Writen()," + ss.str());
+	//stringstream ss;
+	//ss << " fd: " << fd << " nbytes: " << nbytes << " vptr: " << &vptr << " errno: " << errno;
+    //log("wrap.cpp Writen()," + ss.str());
     size_t nleft;
     size_t nwritten;
     const char *ptr;
@@ -94,9 +89,9 @@ ssize_t Writen(int fd, const char *vptr, size_t nbytes) {
     nleft = nbytes;
     while (nleft > 0) {
         nwritten = Write(fd, ptr, nleft);
-        ss.str("");
-        ss << " nwritten: " << nwritten << " errno: " << errno;
-        log("wrap.cpp Writen(), nwritten:" + ss.str());
+        //ss.str("");
+        //ss << " nwritten: " << nwritten << " errno: " << errno;
+        //log("wrap.cpp Writen(), nwritten:" + ss.str());
         if (nwritten <= 0 || nwritten == 18446744073709551615) {
             return -1;
         }
@@ -105,3 +100,4 @@ ssize_t Writen(int fd, const char *vptr, size_t nbytes) {
     }
     return nbytes;
 }
+*/

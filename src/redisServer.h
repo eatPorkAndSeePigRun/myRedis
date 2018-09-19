@@ -3,14 +3,10 @@
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <cstring>
-#include <cstdlib>
-#include <iostream>
 #include <string>
 #include <vector>
 #include <map>
 #include <set>
-
 
 using namespace std;
 
@@ -25,7 +21,7 @@ private:
     map<string, string> db;
     fd_set readfds;
     fd_set writefds;
-    map<int, vector<string> > msg;
+    map<int, string> msg;
 	map<int, string> requestData;
     bool is_open;
     set<int> clientfds;
