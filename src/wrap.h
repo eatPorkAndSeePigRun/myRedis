@@ -1,14 +1,6 @@
 #ifndef WRAP_H
 #define WRAP_H
 
-#include <sys/socket.h>
-#include <sys/select.h>
-#include <cstdlib>
-#include <cerrno>
-#include <string>
-
-using namespace std;
-
 
 ssize_t Read(int fd, void *ptr, size_t nbytes);
 

@@ -61,11 +61,11 @@ bool RedisServer::init() {
     FD_ZERO(&this->readfds);
     FD_ZERO(&this->writefds);
     FD_SET(this->listenfd, &this->readfds);
-        return true;
-    }
+    return true;
+}
 
-    bool RedisServer::run() {
-        log("redisServer.cpp run()");
+bool RedisServer::run() {
+    log("redisServer.cpp run()");
     fd_set readfds, writefds;
     FD_ZERO(&readfds);
     FD_ZERO(&writefds);
@@ -99,8 +99,7 @@ bool RedisServer::listenReadfds() {
     }
     FD_SET(connfd, &this->readfds);
     this->clientfds.insert(connfd);
-    vector<string> temp = {};
-    this->msg[connfd] = temp;
+    this->msg[connfd] = "";
 	this->requestData[connfd] = "";
     log("redisServer.cpp listenReadfds(), connfd: " + to_string(connfd));
     return true;
@@ -143,7 +142,7 @@ void RedisServer::clientWritefds(const fd_set &writefds) {
                 }
                 continue;
             }
-            if (0 == this->msg[fd].size()) {
+            if (this->msg[fd].empty()) {
                 if (FD_ISSET(fd, &this->writefds)) {
                     FD_CLR(fd, &this->writefds);
                 }
@@ -152,20 +151,28 @@ void RedisServer::clientWritefds(const fd_set &writefds) {
             // 日志
             log("redisServer.cpp clientWritefds(), fd: " + to_string(fd));
             // 处理
-            string msg;
-			for (auto &item: this->msg[fd]) {
-				msg = msg + item;
-			}
-			vector<string> ().swap(this->msg[fd]);
-            char msgChar[0xffff] = {};
-            strcpy(msgChar, msg.c_str());
-            int res = Writen(fd, msgChar, msg.length());
+            //char msgChar[0xffff] = {};
+            //strcpy(msgChar, this->msg[fd].c_str());
+            //stringstream ss;
+            //ss << " fd: " << fd << " msg: " << msgChar;
+            //log("***msg*** redisServer.cpp clientWritefds()," + ss.str());
+            int len = this->msg[fd].length();
+            ssize_t res = Write(fd, this->msg[fd].c_str(), len);
             if (-1 == res) {
                 this->onDisconnection(fd);
+                if (FD_ISSET(fd, &this->writefds)) {
+                    FD_CLR(fd, &this->writefds);
+                }
+            } else if (len == res) {
+                if (FD_ISSET(fd, &this->writefds)) {
+                    FD_CLR(fd, &this->writefds);
+                }
+            } else if (res >= 0 && res < len) {
+                this->msg[fd].erase(0, res);
+            } else {
+                log("***error*** redisServer.cpp clientWritefds() -> Write(), fd: " + to_string(fd) + " res: " + to_string(res) + " len: " + to_string(len));
             }
-            if (FD_ISSET(fd, &this->writefds)) {
-                FD_CLR(fd, &this->writefds);
-            }
+            log("***else*** redisServer.cpp clientWritefds() -> Write(), fd: " + to_string(fd) + " res: " + to_string(res) + " len: " + to_string(len));
         }
     }
 }
@@ -236,7 +243,7 @@ void RedisServer::handleRequestData(int fd, string &requestData) {
         }
 
         this->execute(request, command);
-        this->msg[fd].push_back(request);
+        this->msg[fd] = this->msg[fd] + request;
         request = "";
         requestData.erase(dataBegin, p);
         p = requestData.begin();
