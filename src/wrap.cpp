@@ -12,6 +12,7 @@ using namespace std;
 
 ssize_t Read(int fd, void *ptr, size_t nbytes) {
     //signal(SIGPIPE, SIG_IGN);
+    errno = 0;
     ssize_t n = 0;
     while (true) {
         n = read(fd, ptr, nbytes);
@@ -33,12 +34,13 @@ ssize_t Read(int fd, void *ptr, size_t nbytes) {
 
 
 ssize_t Write(int fd, const void *ptr, size_t nbytes) {
-    signal(SIGPIPE, SIG_IGN);
+    //signal(SIGPIPE, SIG_IGN);
+    errno = 0;
     ssize_t n;
     n = write(fd, ptr, nbytes);
     if (n < 0) {
         if (EINTR == errno || EAGAIN == errno) {
-            n = -2;
+            n = 0;
         }
     }
     stringstream ss;
