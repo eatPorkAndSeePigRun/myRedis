@@ -18,13 +18,13 @@ private:
     struct sockaddr_in servaddr;
     int listenfd;
     int maxfds;
-    map<string, string> db;
-    fd_set readfds;
-    fd_set writefds;
-    map<int, string> msg;
-	map<int, string> requestData;
     bool is_open;
     set<int> clientfds;
+    fd_set readfds;
+    fd_set writefds;
+    map<int, string> readMsg;
+	map<int, string> writeMsg;
+    map<string, string> db;
 
     bool listenReadfds();
 
