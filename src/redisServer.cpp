@@ -141,7 +141,7 @@ void RedisServer::clientWritefds(const fd_set &writefds) {
             } else if (res >= 0 && res <= len) {
                 this->writeMsg[fd].erase(0, res);
             } else {
-                log("***error*** redisServer.cpp clientWritefds() -> Write(), fd: " + to_string(fd) + " res: " + to_string(res) + " len: " + to_string(len) + " errno: " + to_string(errno));
+                log("***error*** redisServer.cpp clientWritefds() -> Write(), errno: " + to_string(errno));
             }
             // 日志
             log("redisServer.cpp clientWritefds() -> Write(), fd: " + to_string(fd) + " res: " + to_string(res) + " len: " + to_string(len));
@@ -237,12 +237,8 @@ void RedisServer::handleRequestData(int fd, string &requestData) {
 
 void RedisServer::onDisconnection(int fd) {
     FD_CLR(fd, &this->readfds);
-    if (FD_ISSET(fd, &this->writefds)) {
-        FD_CLR(fd, &this->writefds);
-    }
     close(fd);
     this->writeMsg.erase(fd);
-    //this->clientfds.erase(fd);
     log("redisServer.cpp onDisconnection(), fd: " + to_string(fd)); 
 }
 
