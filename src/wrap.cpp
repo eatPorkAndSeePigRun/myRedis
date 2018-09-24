@@ -13,7 +13,7 @@ using namespace std;
 ssize_t Read(int fd, void *ptr, size_t nbytes) {
     //signal(SIGPIPE, SIG_IGN);
     errno = 0;
-    ssize_t n = 0;
+    ssize_t n;
     while (true) {
         n = read(fd, ptr, nbytes);
         if (n < 0) {
@@ -27,7 +27,10 @@ ssize_t Read(int fd, void *ptr, size_t nbytes) {
         }
     }
     stringstream ss;
-    ss << " fd: " << fd << " n: " << n << " ptr: " << &ptr << " errno: " << errno;
+    ss << " fd: " << fd << " n: " << n << " ptr: " << &ptr;
+    if (0 != errno) {
+        ss << " errno: " << errno;
+    }
     log("wrap.cpp Read()," + ss.str());
     return n;
 }
@@ -44,7 +47,10 @@ ssize_t Write(int fd, const void *ptr, size_t nbytes) {
         }
     }
     stringstream ss;
-    ss << " fd: " << fd << " n: " << n << " ptr: " << &ptr << " errno: " << errno;
+    ss << " fd: " << fd << " nbytes: " << nbytes << " n: " << n << " ptr: " << &ptr;
+    if (0 != errno) {
+        ss << " errno: " << errno;
+    }
     log("wrap.cpp Write()," + ss.str());
     return n;
 }

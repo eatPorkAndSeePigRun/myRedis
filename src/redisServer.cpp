@@ -79,11 +79,7 @@ bool RedisServer::run() {
             return false;
         }
         log("============= start: " + to_string(i) + " ==========================================");
-        if (FD_ISSET(this->listenfd, &readfds)) {
-            if (!this->listenReadfds()) {
-                continue;
-            }
-        }
+        this->listenReadfds(readfds);
         this->clientReadfds(readfds);
         this->clientWritefds(writefds);
         log("============= end ===========================================");
@@ -91,22 +87,23 @@ bool RedisServer::run() {
     }
 }
 
-bool RedisServer::listenReadfds() {
-    struct sockaddr_in cliaddr = {};
-    socklen_t cliaddr_len = 0;
-    int connfd = accept4(this->listenfd, (struct sockaddr *) &cliaddr, &cliaddr_len, SOCK_NONBLOCK);
-    if (connfd < 0) {
-        return false;
+void RedisServer::listenReadfds(const fd_set &readfds) {
+    if (FD_ISSET(this->listenfd, &readfds)) {
+        struct sockaddr_in cliaddr = {};
+        socklen_t cliaddr_len = 0;
+        int connfd = accept4(this->listenfd, (struct sockaddr *) &cliaddr, &cliaddr_len, SOCK_NONBLOCK);
+        if (connfd < 0) {
+            return;
+        }
+        if (FD_SETSIZE == this->maxfds) {
+            return;
+        }
+        FD_SET(connfd, &this->readfds);
+        this->clientfds.insert(connfd);
+	    this->readMsg[connfd] = "";
+        this->writeMsg[connfd] = "";
+        log("redisServer.cpp listenReadfds(), connfd: " + to_string(connfd));
     }
-    if (FD_SETSIZE == this->maxfds) {
-        return false;
-    }
-    FD_SET(connfd, &this->readfds);
-    this->clientfds.insert(connfd);
-    this->writeMsg[connfd] = "";
-	this->readMsg[connfd] = "";
-    log("redisServer.cpp listenReadfds(), connfd: " + to_string(connfd));
-    return true;
 }
 
 void RedisServer::clientReadfds(const fd_set &readfds) {
@@ -118,17 +115,12 @@ void RedisServer::clientReadfds(const fd_set &readfds) {
             char dataChar[0xffff] = {};
             switch (Read(fd, dataChar, 0xffff)) {
                 case -1:
-                    this->onDisconnection(fd);
-                    break;
                 case 0:
                     this->onDisconnection(fd);
                     break;
                 default:
                     this->readMsg[fd] = this->readMsg[fd] + string(dataChar);
 					this->handleRequestData(fd, this->readMsg[fd]);
-                    if (!FD_ISSET(fd, &this->writefds)) {
-                        FD_SET(fd, &this->writefds);
-                    }
                     break;
             }
         }
@@ -138,24 +130,33 @@ void RedisServer::clientReadfds(const fd_set &readfds) {
 void RedisServer::clientWritefds(const fd_set &writefds) {
     for (auto &fd: this->clientfds) {
         if (FD_ISSET(fd, &writefds)) {
-            // 输入检查
             if (this->writeMsg.find(fd) == this->writeMsg.end() || this->writeMsg[fd].empty()) {
                 continue;
             }
-            // 日志
-            log("redisServer.cpp clientWritefds(), fd: " + to_string(fd));
             // 处理
             int len = this->writeMsg[fd].length();
             ssize_t res = Write(fd, this->writeMsg[fd].c_str(), len);
             if (-1 == res) {
                 this->onDisconnection(fd);
-            } else if (res >= 0 && res < len) {
+            } else if (res >= 0 && res <= len) {
                 this->writeMsg[fd].erase(0, res);
-            } else if (len == res) {
             } else {
                 log("***error*** redisServer.cpp clientWritefds() -> Write(), fd: " + to_string(fd) + " res: " + to_string(res) + " len: " + to_string(len) + " errno: " + to_string(errno));
             }
+            // 日志
             log("redisServer.cpp clientWritefds() -> Write(), fd: " + to_string(fd) + " res: " + to_string(res) + " len: " + to_string(len));
+        }
+    }
+    // 重置this->writefds
+    for (auto &fd: this->clientfds) {
+        if (this->writeMsg.find(fd) != this->writeMsg.end() && !this->writeMsg[fd].empty()) {
+            if (!FD_ISSET(fd, &this->writefds)) {
+                FD_SET(fd, &this->writefds);
+            }
+        } else {
+            if (FD_ISSET(fd, &this->writefds)) {
+                FD_CLR(fd, &this->writefds);
+            }
         }
     }
 }

@@ -26,7 +26,7 @@ private:
 	map<int, string> writeMsg;
     map<string, string> db;
 
-    bool listenReadfds();
+    void listenReadfds(const fd_set &readfds);
 
     void clientReadfds(const fd_set &readfds);
 
