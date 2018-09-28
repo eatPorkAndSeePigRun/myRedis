@@ -39,6 +39,9 @@ ssize_t Write(int fd, const void *ptr, size_t nbytes) {
         }
         ss << " errno: " << errno;
     }
+    if (nbytes > n) {
+        ss << " unequal....";
+    }
     log("wrap.cpp Write()," + ss.str());
     return n;
 }
