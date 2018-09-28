@@ -119,7 +119,7 @@ void RedisServer::clientReadfds(const fd_set &readfds) {
                     this->onDisconnection(fd);
                     break;
                 default:
-                    this->readMsg[fd] = this->readMsg[fd] + string(dataChar);
+                    this->readMsg[fd] += string(dataChar);
 					this->handleRequestData(fd, this->readMsg[fd]);
                     break;
             }
@@ -227,7 +227,7 @@ void RedisServer::handleRequestData(int fd, string &requestData) {
         }
 
         this->execute(request, command);
-        this->writeMsg[fd] = this->writeMsg[fd] + request;
+        this->writeMsg[fd] += request;
         request = "";
         requestData.erase(dataBegin, p);
         p = requestData.begin();
@@ -237,8 +237,13 @@ void RedisServer::handleRequestData(int fd, string &requestData) {
 
 void RedisServer::onDisconnection(int fd) {
     FD_CLR(fd, &this->readfds);
-    close(fd);
+    this->readMsg.erase(fd);
     this->writeMsg.erase(fd);
+    auto p = this->clientfds.find(fd);
+    if (p == this->clientfds.end()) { 
+        this->clientfds.erase(p);
+    }
+    close(fd);
     log("redisServer.cpp onDisconnection(), fd: " + to_string(fd)); 
 }
 

@@ -15,5 +15,6 @@ int main() {
         redisServer.~RedisServer();
         return 0;
     }
+    cout << "exit...." << endl;
     return 0;
 }
